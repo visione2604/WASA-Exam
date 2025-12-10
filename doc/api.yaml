@@ -130,7 +130,7 @@ paths:
                 description: Array of objects each representing a conversation
                 type: array
                 items:
-                  $ref: '#/components/schemas/Conversations'
+                  $ref: '#/components/schemas/Conversation'
         '400':
           description: Failed to retrieve conversations
           content:
@@ -225,13 +225,7 @@ paths:
                     value:
                       type: string
                       description: Text content or URL to photo
-                attachments:
-                  type: array
-                  description: Optional attachments (small files)
-                  items:
-                    type: string
-                    format: byte
-                  nullable: true
+
       responses:
         '201':
           description: Message sent successfully
@@ -325,6 +319,75 @@ paths:
                   error:
                     type: string
                     example: "Invalid request data"
+  /conversations/{conversationId}/messages/{messageId}:
+    delete:
+      tags:
+        - Message
+      summary: Delete a message
+      description: Deletes a message from a conversation.
+      operationId: deleteMessage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          description: The ID of the conversation containing the message.
+          schema:
+            type: string
+            example: "conv123"
+        - name: messageId
+          in: path
+          required: true
+          description: The ID of the message to delete.
+          schema:
+            type: string
+            example: "msg789"
+      responses:
+        '200':
+          description: Message deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Message deleted"
+        '403':
+          description: User is not allowed to delete this message
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "You cannot delete this message"
+        '404':
+          description: Conversation or message not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Message not found"
+        '400':
+          description: Invalid IDs (wrong format, empty, etc.)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid message ID"
+
 
 
 
@@ -416,18 +479,6 @@ components:
           description: Reactions applied to this message
           items:
             href: '#/components/schemas/Reaction'
-          nullable: true
-        attachments:
-          type: array
-          description: Optional attachments (small files)
-          items:
-            type: string
-            format: byte
-            description: Base64-encoded file content
-          nullable: true
-        forwarded_from:
-          type: string
-          description: ID of the user this message was forwarded from
           nullable: true
 
     Conversation:
