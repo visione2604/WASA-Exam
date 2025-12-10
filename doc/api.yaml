@@ -260,6 +260,72 @@ paths:
                   error:
                     type: string
                     example: "Invalid message data"
+  /conversations/{sourceConversationId}/messages/{messageId}/forward:
+    post:
+      tags:
+        - Message
+      summary: Forward a message
+      description: Forwards an existing message from one conversation to another.
+      operationId: forwardMessage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: sourceConversationId
+          in: path
+          required: true
+          description: ID of the conversation containing the original message
+          schema:
+            type: string
+            example: "conv123"
+        - name: messageId
+          in: path
+          required: true
+          description: ID of the message to forward
+          schema:
+            type: string
+            example: "msg789"
+      requestBody:
+        required: true
+        description: Target conversation to forward the message to
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - targetConversationId
+              properties:
+                targetConversationId:
+                  type: string
+                  description: ID of the conversation to forward the message to
+                  example: "conv456"
+      responses:
+        '201':
+          description: Message successfully forwarded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '404':
+          description: Conversation or message not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Conversation or message not found"
+        '400':
+          description: Invalid request (e.g., missing targetConversationId)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid request data"
+
 
 
 
