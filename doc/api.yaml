@@ -44,7 +44,7 @@ paths:
                   type: string
                   example: Maria
                   minLength: 3
-                  maxLength: 16
+                  maxLength: 20
               required: [name]
       responses:
         "200":
@@ -141,6 +141,128 @@ paths:
                   error:
                     type: string
                     example: "Failed to retrieve conversations"
+  /conversation/{id}:
+    get:
+      tags:
+        - Conversation
+      summary: Get a single conversation
+      description: Retrieve a single conversation including participants and messages.
+      operationId: getConversation
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: The unique ID of the conversation
+          required: true
+          schema:
+            type: string
+            example: "conv123"
+      responses:
+        '200':
+          description: Conversation details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+        '404':
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Conversation not found"
+        '400':
+          description: Invalid conversation ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid conversation ID"
+  /conversation/{id}/sendMessage:
+    post:
+      tags:
+        - Message
+      summary: Send a new message in a conversation
+      description: Adds a new message to the specified conversation.
+      operationId: sendMessage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: The ID of the conversation
+          required: true
+          schema:
+            type: string
+            example: "conv123"
+      requestBody:
+        description: Message to send
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: object
+                  required:
+                    - type
+                    - value
+                  properties:
+                    type:
+                      type: string
+                      enum: [text, photo]
+                      description: Type of message
+                    value:
+                      type: string
+                      description: Text content or URL to photo
+                attachments:
+                  type: array
+                  description: Optional attachments (small files)
+                  items:
+                    type: string
+                    format: byte
+                  nullable: true
+      responses:
+        '201':
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+
+        '404':
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Conversation not found"
+        '400':
+          description: Invalid request (e.g., missing content)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid message data"
+
+
+
 
 components:
   securitySchemes:
@@ -150,7 +272,18 @@ components:
       bearerFormat: JWT
 
   schemas:
-    User: 
+    Username:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 20
+          example: "Alex"
+
+    User:
       type: object
       description: Represents a user
       required:
@@ -161,7 +294,6 @@ components:
           type: string
           description: Unique identifier for the user, given upon account creation
           example: "user123"
-          pattern: ^.*?$
           minLength: 1
           maxLength: 30
         username:
@@ -169,19 +301,76 @@ components:
         profilePhoto:
           type: string
           format: byte
-          description: Base64-encoded image data
-          pattern: ^.*?$
-          minLength: 0
-          maxLength: 10485760
-    Username:
-      type: string
-      minLength: 3
-      maxLength: 20
-      example: "Alex"
+          nullable: true
+          description: Optional Base64-encoded image data
 
-    Conversations:
+    Message:
+      type: object
+      description: A message sent in a conversation
+      required:
+        - id
+        - sender
+        - content
+        - timestamp
+        - message_status
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the message
+          example: "msg123"
+          minLength: 1
+          maxLength: 36
+        sender:
+          $ref: '#/components/schemas/User'
+        content:
+          type: object
+          description: Content of the message
+          required:
+            - type
+            - value
+          properties:
+            type:
+              type: string
+              enum: [text, photo]
+              description: Type of message
+            value:
+              type: string
+              description: Text content or URL to photo
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of when the message was sent
+          example: "2025-12-10T11:45:00Z"
+        message_status:
+          type: string
+          enum: [sent, delivered, read]
+          description: Status of the message
+        reactions:
+          type: array
+          description: Reactions applied to this message
+          items:
+            href: '#/components/schemas/Reaction'
+          nullable: true
+        attachments:
+          type: array
+          description: Optional attachments (small files)
+          items:
+            type: string
+            format: byte
+            description: Base64-encoded file content
+          nullable: true
+        forwarded_from:
+          type: string
+          description: ID of the user this message was forwarded from
+          nullable: true
+
+    Conversation:
       type: object
       description: Conversation belonging to a user
+      required:
+        - id
+        - name
+        - isGroup
       properties:
         id:
           type: string
@@ -189,18 +378,27 @@ components:
         name:
           type: string
           example: "WASA Group Chat"
+        groupPhoto:
+          type: string
+          format: byte
+          nullable: true
+          description: Group photo
         isGroup:
           type: boolean
           description: True if this is a group conversation, false if private
           example: true
         lastMessage:
-          type: string
-          example: "What is a WASA exam?"
-        participantsCount:
-          type: integer
-          example: 4
-      required:
-        - id
-        - name
-        - isGroup
-
+          $ref: '#/components/schemas/Message'
+          nullable: true
+        participants:
+          type: array
+          description: List of participants
+          items:
+            $ref: '#/components/schemas/User'
+        messages:
+          type: array
+          description: List of messages sent in the conversation
+          items:
+            $ref: '#/components/schemas/Message'
+          nullable: true
+ 
