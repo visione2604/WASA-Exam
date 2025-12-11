@@ -257,7 +257,31 @@ paths:
                   enum: [like, heart, laugh]
       responses:
         '200':
-          description: Added
+          description: Reaction added or updated successfully. Returns the updated summary of reactions on the message.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reaction' 
+        '400':
+          description: Invalid reaction type provided or bad request data.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid reaction type or data"
+        '404':
+          description: Conversation or message not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Message not found"
 
   /conversations/{conversationId}/messages/{messageId}/reactions/{type}:
     delete:
@@ -286,6 +310,12 @@ paths:
       responses:
         '200':
           description: Removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '400':
+          description: Error
 
   /conversations/{conversationId}/participants/{userId}:
     put:
@@ -309,6 +339,8 @@ paths:
       responses:
         '200':
           description: Added
+        '400':
+          description: Error'
     delete:
       tags:
         - Group
