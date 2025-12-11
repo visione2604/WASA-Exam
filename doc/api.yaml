@@ -1,54 +1,44 @@
 openapi: 3.0.3
 info:
   title: WASA-Exam
-  description: Program that will hopefully pass the exam.
+  description: API for the WASA Exam project.
   version: 1.0.0
 
-security: []   
+security: []
 
 tags:
   - name: Auth
-    description: Endpoints for logging.
   - name: Profile
-    description: Endpoints for managing user operations.
   - name: Conversation
-    description: Endpoints for managing conversation operations.
   - name: Message
-    description: Endpoints for managing message operations.
   - name: Reaction
-    description: Endpoints for adding or removing reactions or comments on messages.
   - name: Group
-    description: Endpoints for managing group operations.
 
 paths:
   /doLogin:
     post:
       tags:
         - Auth
-      summary: Log in or create an account
-      description: |
-        Logs in the user. 
-        If the user doesn't exist, it will be created and an identifier is returned.
-        If the user exists, the identifier is returned.
+      summary: Log in or create account
       operationId: doLogin
-      security: []    
+      security: []
       requestBody:
-        description: User details
         required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - name
               properties:
                 name:
                   type: string
-                  example: Maria
                   minLength: 3
                   maxLength: 20
-              required: [name]
+                  example: "Maria"
       responses:
         "200":
-          description: User successfully logged in
+          description: Logged in
           content:
             application/json:
               schema:
@@ -56,9 +46,9 @@ paths:
                 properties:
                   identifier:
                     type: string
-                    example: "abcdef012345"
+                    example: "user123token"
         "201":
-          description: User successfully created
+          description: Created
           content:
             application/json:
               schema:
@@ -66,24 +56,12 @@ paths:
                 properties:
                   identifier:
                     type: string
-                    example: "abcdef012345"
-        "400":
-          description: Invalid input data, failed to login
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Invalid input data"
 
   /user/changename:
     put:
       tags:
         - Profile
-      summary: Change your username
-      description: Updates the username of the logged-in user if the new username is valid and not already taken.
+      summary: Change username
       operationId: setMyUserName
       security:
         - BearerAuth: []
@@ -95,115 +73,69 @@ paths:
               $ref: '#/components/schemas/Username'
       responses:
         '200':
-          description: Username updated successfully
+          description: Updated
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
         '400':
-          description: Invalid or already taken username
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Username already taken"
-
+          description: Error
 
   /user/conversations:
     get:
       tags:
         - Conversation
-      summary: Get user's conversations
-      description: Returns all conversations of the logged-in user
+      summary: Get conversations
       operationId: getMyConversations
       security:
         - BearerAuth: []
       responses:
         '200':
-          description: List of conversations of the user
+          description: List conversations
           content:
             application/json:
               schema:
-                description: Array of objects each representing a conversation
                 type: array
                 items:
                   $ref: '#/components/schemas/Conversation'
-        '400':
-          description: Failed to retrieve conversations
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Failed to retrieve conversations"
+
   /conversation/{id}:
     get:
       tags:
         - Conversation
-      summary: Get a single conversation
-      description: Retrieve a single conversation including participants and messages.
+      summary: Get single conversation
       operationId: getConversation
       security:
         - BearerAuth: []
       parameters:
         - name: id
           in: path
-          description: The unique ID of the conversation
           required: true
           schema:
             type: string
-            example: "conv123"
       responses:
         '200':
-          description: Conversation details
+          description: Details
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Conversation'
-        '404':
-          description: Conversation not found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Conversation not found"
-        '400':
-          description: Invalid conversation ID
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Invalid conversation ID"
+
   /conversation/{id}/sendMessage:
     post:
       tags:
         - Message
-      summary: Send a new message in a conversation
-      description: Adds a new message to the specified conversation.
+      summary: Send message
       operationId: sendMessage
       security:
         - BearerAuth: []
       parameters:
         - name: id
           in: path
-          description: The ID of the conversation
           required: true
           schema:
             type: string
-            example: "conv123"
       requestBody:
-        description: Message to send
         required: true
         content:
           application/json:
@@ -221,45 +153,44 @@ paths:
                     type:
                       type: string
                       enum: [text, photo]
-                      description: Type of message
                     value:
                       type: string
-                      description: Text content or URL to photo
-
       responses:
         '201':
-          description: Message sent successfully
+          description: Sent
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Message'
 
-        '404':
-          description: Conversation not found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Conversation not found"
-        '400':
-          description: Invalid request (e.g., missing content)
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Invalid message data"
-  /conversations/{sourceConversationId}/messages/{messageId}/forward:
+  /conversation/{conversationId}/messages/{messageId}:
+    delete:
+      tags:
+        - Message
+      summary: Delete message
+      operationId: deleteMessage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted
+
+  /conversation/{sourceConversationId}/messages/{messageId}/forward:
     post:
       tags:
         - Message
-      summary: Forward a message
-      description: Forwards an existing message from one conversation to another.
+      summary: Forward message
       operationId: forwardMessage
       security:
         - BearerAuth: []
@@ -267,20 +198,15 @@ paths:
         - name: sourceConversationId
           in: path
           required: true
-          description: ID of the conversation containing the original message
           schema:
             type: string
-            example: "conv123"
         - name: messageId
           in: path
           required: true
-          description: ID of the message to forward
           schema:
             type: string
-            example: "msg789"
       requestBody:
         required: true
-        description: Target conversation to forward the message to
         content:
           application/json:
             schema:
@@ -290,109 +216,204 @@ paths:
               properties:
                 targetConversationId:
                   type: string
-                  description: ID of the conversation to forward the message to
-                  example: "conv456"
       responses:
         '201':
-          description: Message successfully forwarded
+          description: Forwarded
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Message'
-        '404':
-          description: Conversation or message not found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Conversation or message not found"
-        '400':
-          description: Invalid request (e.g., missing targetConversationId)
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Invalid request data"
-  /conversations/{conversationId}/messages/{messageId}:
-    delete:
+
+  /conversations/{conversationId}/messages/{messageId}/reactions:
+    post:
       tags:
-        - Message
-      summary: Delete a message
-      description: Deletes a message from a conversation.
-      operationId: deleteMessage
+        - Reaction
+      summary: Add reaction
+      operationId: addReaction
       security:
         - BearerAuth: []
       parameters:
         - name: conversationId
           in: path
           required: true
-          description: The ID of the conversation containing the message.
           schema:
             type: string
-            example: "conv123"
         - name: messageId
           in: path
           required: true
-          description: The ID of the message to delete.
           schema:
             type: string
-            example: "msg789"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+              properties:
+                type:
+                  type: string
+                  enum: [like, heart, laugh]
       responses:
         '200':
-          description: Message deleted successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: "Message deleted"
-        '403':
-          description: User is not allowed to delete this message
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "You cannot delete this message"
-        '404':
-          description: Conversation or message not found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Message not found"
-        '400':
-          description: Invalid IDs (wrong format, empty, etc.)
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Invalid message ID"
+          description: Added
 
+  /conversations/{conversationId}/messages/{messageId}/reactions/{type}:
+    delete:
+      tags:
+        - Reaction
+      summary: Remove reaction
+      operationId: removeReaction
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Removed
 
+  /conversations/{conversationId}/participants/{userId}:
+    put:
+      tags:
+        - Group
+      summary: Add user to group
+      operationId: addToGroup
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Added
+    delete:
+      tags:
+        - Group
+      summary: Leave group
+      operationId: leaveGroup
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Left
 
+  /conversations/{conversationId}/name:
+    put:
+      tags:
+        - Group
+      summary: Change group name
+      operationId: setGroupName
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+      responses:
+        '200':
+          description: Updated
 
+  /conversations/{conversationId}/photo:
+    put:
+      tags:
+        - Group
+      summary: Set group photo
+      operationId: setGroupPhoto
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - photo
+              properties:
+                photo:
+                  type: string
+                  format: byte
+      responses:
+        '200':
+          description: Updated
 
-
+  /user/photo:
+    put:
+      tags:
+        - Profile
+      summary: Set profile photo
+      operationId: setMyPhoto
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - photo
+              properties:
+                photo:
+                  type: string
+                  format: byte
+      responses:
+        '200':
+          description: Updated
+  
 components:
   securitySchemes:
     BearerAuth:
@@ -408,34 +429,39 @@ components:
       properties:
         name:
           type: string
-          minLength: 3
-          maxLength: 20
           example: "Alex"
 
     User:
       type: object
-      description: Represents a user
       required:
         - id
         - username
       properties:
         id:
           type: string
-          description: Unique identifier for the user, given upon account creation
-          example: "user123"
-          minLength: 1
-          maxLength: 30
+          example: "u1"
         username:
           $ref: '#/components/schemas/Username'
         profilePhoto:
           type: string
           format: byte
           nullable: true
-          description: Optional Base64-encoded image data
+
+    Reaction:
+      type: object
+      required:
+        - type
+        - authorId 
+      properties:
+        type:
+          type: string
+          enum: [like, heart, laugh]
+        authorId:
+          type: string
+          example: "u1"
 
     Message:
       type: object
-      description: A message sent in a conversation
       required:
         - id
         - sender
@@ -445,15 +471,11 @@ components:
       properties:
         id:
           type: string
-          description: Unique identifier for the message
-          example: "msg123"
-          minLength: 1
-          maxLength: 36
+          example: "msg1"
         sender:
           $ref: '#/components/schemas/User'
         content:
           type: object
-          description: Content of the message
           required:
             - type
             - value
@@ -461,29 +483,22 @@ components:
             type:
               type: string
               enum: [text, photo]
-              description: Type of message
             value:
               type: string
-              description: Text content or URL to photo
         timestamp:
           type: string
           format: date-time
-          description: Timestamp of when the message was sent
-          example: "2025-12-10T11:45:00Z"
         message_status:
           type: string
           enum: [sent, delivered, read]
-          description: Status of the message
         reactions:
           type: array
-          description: Reactions applied to this message
           items:
-            href: '#/components/schemas/Reaction'
+            $ref: '#/components/schemas/Reaction'
           nullable: true
 
     Conversation:
       type: object
-      description: Conversation belonging to a user
       required:
         - id
         - name
@@ -491,31 +506,26 @@ components:
       properties:
         id:
           type: string
-          example: "conv123"
+          example: "conv1"
         name:
           type: string
-          example: "WASA Group Chat"
+          example: "Chat"
         groupPhoto:
           type: string
           format: byte
           nullable: true
-          description: Group photo
         isGroup:
           type: boolean
-          description: True if this is a group conversation, false if private
           example: true
         lastMessage:
           $ref: '#/components/schemas/Message'
           nullable: true
         participants:
           type: array
-          description: List of participants
           items:
             $ref: '#/components/schemas/User'
         messages:
           type: array
-          description: List of messages sent in the conversation
           items:
             $ref: '#/components/schemas/Message'
           nullable: true
- 
