@@ -56,6 +56,10 @@ paths:
                 properties:
                   identifier:
                     type: string
+        '400':
+          description: Invalid input'
+        '404':
+          description: User not found'
 
   /user/{userId}/changename:
     put:
@@ -80,6 +84,8 @@ paths:
                 $ref: '#/components/schemas/User'
         '400':
           description: Error
+        '404':
+          description: User not found'
 
   /user/{userId}/conversations:
     get:
@@ -98,6 +104,10 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Conversation'
+        '400':
+          description: Error'
+        '404':
+          description: User not found'
 
   /conversation/{id}:
     get:
@@ -120,6 +130,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Conversation'
+        '404':
+          description: Conversation not found'
+        '400':
+          description: Error'
 
   /conversation/{id}/sendMessage:
     post:
@@ -162,6 +176,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Message'
+        '400':
+          description: Error'
+        '404':
+          description: Conversation not found'
 
   /conversation/{conversationId}/messages/{messageId}:
     delete:
@@ -185,6 +203,10 @@ paths:
       responses:
         '200':
           description: Deleted
+        '400':
+          description: Error'
+        '404':
+          description: Conversation or message not found'
 
   /conversation/{sourceConversationId}/messages/{messageId}/forward:
     post:
@@ -223,6 +245,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Message'
+        '400':
+          description: Error'
+        '404':
+          description: Conversation or message not found'
 
   /conversations/{conversationId}/messages/{messageId}/reactions:
     post:
@@ -316,6 +342,8 @@ paths:
                 $ref: '#/components/schemas/Message'
         '400':
           description: Error
+        '404':
+          description: Conversation or message not found'
 
   /conversations/{conversationId}/participants/{userId}:
     put:
@@ -362,6 +390,10 @@ paths:
       responses:
         '200':
           description: Left
+        '400':
+          description: Error'
+        '404':
+          description: Conversation not found'
 
   /conversations/{conversationId}/name:
     put:
