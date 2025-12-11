@@ -57,7 +57,7 @@ paths:
                   identifier:
                     type: string
 
-  /user/changename:
+  /user/{userId}/changename:
     put:
       tags:
         - Profile
@@ -81,7 +81,7 @@ paths:
         '400':
           description: Error
 
-  /user/conversations:
+  /user/{userId}/conversations:
     get:
       tags:
         - Conversation
@@ -391,6 +391,10 @@ paths:
       responses:
         '200':
           description: Updated
+        '400':
+          description: Error'
+        '404':
+          description: Conversation not found'
 
   /conversations/{conversationId}/photo:
     put:
@@ -421,8 +425,16 @@ paths:
       responses:
         '200':
           description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+        '400':
+          description: Error'
+        '404':
+          description: Conversation not found'
 
-  /user/photo:
+  /user/{userId}/photo:
     put:
       tags:
         - Profile
@@ -430,6 +442,7 @@ paths:
       operationId: setMyPhoto
       security:
         - BearerAuth: []
+          
       requestBody:
         required: true
         content:
@@ -445,6 +458,14 @@ paths:
       responses:
         '200':
           description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Error'
+        '404':
+          description: User not found'
   
 components:
   securitySchemes:
