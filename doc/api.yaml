@@ -57,7 +57,7 @@ paths:
                   identifier:
                     type: string
 
-  /user/changename:
+  /user/{id}/changename:
     put:
       tags:
         - Profile
@@ -81,7 +81,7 @@ paths:
         '400':
           description: Error
 
-  /user/conversations:
+  /user/{id}/conversations:
     get:
       tags:
         - Conversation
@@ -226,10 +226,9 @@ paths:
 
   /conversations/{conversationId}/messages/{messageId}/reactions:
     post:
-      tags:
-        - Reaction
-      summary: Add reaction
-      operationId: addReaction
+      tags: [Reaction]
+      summary: Add a reaction to a message
+      operationId: commentMessage
       security:
         - BearerAuth: []
       parameters:
@@ -249,22 +248,42 @@ paths:
           application/json:
             schema:
               type: object
-              required:
-                - type
+              required: [type]
               properties:
                 type:
                   type: string
-                  enum: [like, heart, laugh]
+                  enum: [like, heart, laugh,sad_face,angry_face]
+                  description: Type of reaction to add
       responses:
         '200':
-          description: Added
+          description: Reaction added successfully
+        '400':
+          description: Invalid request 
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid reaction"
+        '404':
+          description: Message or conversation not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Message not found"
+
 
   /conversations/{conversationId}/messages/{messageId}/reactions/{type}:
     delete:
-      tags:
-        - Reaction
-      summary: Remove reaction
-      operationId: removeReaction
+      tags: [Reaction]
+      summary: Remove a reaction from a message
+      operationId: uncommentMessage
       security:
         - BearerAuth: []
       parameters:
@@ -283,15 +302,37 @@ paths:
           required: true
           schema:
             type: string
-      responses:
-        '200':
-          description: Removed
+            enum: [like, heart, laugh,sad_face,angry_face]
+    responses:
+      '200':
+        description: Reaction removed successfully
+      '400':
+        description: Invalid request (e.g., user hasn’t reacted)
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  example: "You haven’t reacted with this type"
+      '404':
+        description: Message or conversation not found
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  example: "Message not found"
+
 
   /conversations/{conversationId}/participants/{userId}:
     put:
-      tags:
-        - Group
+      tags: [Group]
       summary: Add user to group
+      description: Allows an existing group member to add another user to the conversation.
       operationId: addToGroup
       security:
         - BearerAuth: []
@@ -307,12 +348,17 @@ paths:
           schema:
             type: string
       responses:
-        '200':
-          description: Added
+        '204':
+          description: User successfully added to the group
+        '400':
+          description: Invalid operation (e.g., user already in group)
+        '404':
+          description: Conversation or user not found
+
     delete:
-      tags:
-        - Group
-      summary: Leave group
+      tags: [Group]
+      summary: Remove a user from the group or leave group
+      description: Allows a user to leave a conversation or removes a specified user.
       operationId: leaveGroup
       security:
         - BearerAuth: []
@@ -328,8 +374,13 @@ paths:
           schema:
             type: string
       responses:
-        '200':
-          description: Left
+        '204':
+          description: User successfully removed from group
+        '400':
+          description: Invalid operation (e.g., user not in group)
+        '404':
+          description: Conversation or user not found
+
 
   /conversations/{conversationId}/name:
     put:
@@ -455,7 +506,7 @@ components:
       properties:
         type:
           type: string
-          enum: [like, heart, laugh]
+          enum: [like, heart, laugh,sad_face,angry_face]
         authorId:
           type: string
           example: "u1"
