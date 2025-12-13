@@ -56,12 +56,8 @@ paths:
                 properties:
                   identifier:
                     type: string
-        '400':
-          description: Invalid input'
-        '404':
-          description: User not found'
 
-  /user/{userId}/changename:
+  /user/changename:
     put:
       tags:
         - Profile
@@ -84,10 +80,8 @@ paths:
                 $ref: '#/components/schemas/User'
         '400':
           description: Error
-        '404':
-          description: User not found'
 
-  /user/{userId}/conversations:
+  /user/conversations:
     get:
       tags:
         - Conversation
@@ -104,10 +98,6 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Conversation'
-        '400':
-          description: Error'
-        '404':
-          description: User not found'
 
   /conversation/{id}:
     get:
@@ -130,10 +120,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Conversation'
-        '404':
-          description: Conversation not found'
-        '400':
-          description: Error'
 
   /conversation/{id}/sendMessage:
     post:
@@ -176,10 +162,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Message'
-        '400':
-          description: Error'
-        '404':
-          description: Conversation not found'
 
   /conversation/{conversationId}/messages/{messageId}:
     delete:
@@ -203,10 +185,6 @@ paths:
       responses:
         '200':
           description: Deleted
-        '400':
-          description: Error'
-        '404':
-          description: Conversation or message not found'
 
   /conversation/{sourceConversationId}/messages/{messageId}/forward:
     post:
@@ -245,10 +223,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Message'
-        '400':
-          description: Error'
-        '404':
-          description: Conversation or message not found'
 
   /conversations/{conversationId}/messages/{messageId}/reactions:
     post:
@@ -283,31 +257,7 @@ paths:
                   enum: [like, heart, laugh]
       responses:
         '200':
-          description: Reaction added or updated successfully. Returns the updated summary of reactions on the message.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Reaction' 
-        '400':
-          description: Invalid reaction type provided or bad request data.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Invalid reaction type or data"
-        '404':
-          description: Conversation or message not found.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Message not found"
+          description: Added
 
   /conversations/{conversationId}/messages/{messageId}/reactions/{type}:
     delete:
@@ -336,14 +286,6 @@ paths:
       responses:
         '200':
           description: Removed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Message'
-        '400':
-          description: Error
-        '404':
-          description: Conversation or message not found'
 
   /conversations/{conversationId}/participants/{userId}:
     put:
@@ -367,8 +309,6 @@ paths:
       responses:
         '200':
           description: Added
-        '400':
-          description: Error'
     delete:
       tags:
         - Group
@@ -390,10 +330,6 @@ paths:
       responses:
         '200':
           description: Left
-        '400':
-          description: Error'
-        '404':
-          description: Conversation not found'
 
   /conversations/{conversationId}/name:
     put:
@@ -423,10 +359,6 @@ paths:
       responses:
         '200':
           description: Updated
-        '400':
-          description: Error'
-        '404':
-          description: Conversation not found'
 
   /conversations/{conversationId}/photo:
     put:
@@ -457,16 +389,8 @@ paths:
       responses:
         '200':
           description: Updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Conversation'
-        '400':
-          description: Error'
-        '404':
-          description: Conversation not found'
 
-  /user/{userId}/photo:
+  /user/photo:
     put:
       tags:
         - Profile
@@ -474,7 +398,6 @@ paths:
       operationId: setMyPhoto
       security:
         - BearerAuth: []
-          
       requestBody:
         required: true
         content:
@@ -490,14 +413,6 @@ paths:
       responses:
         '200':
           description: Updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/User'
-        '400':
-          description: Error'
-        '404':
-          description: User not found'
   
 components:
   securitySchemes:
