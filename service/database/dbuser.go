@@ -5,43 +5,39 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/visione2604/WASA-Exam/service/components/schema"
 )
 
-var (
-	ErrUserDoesNotExist = errors.New("user does not exist")
-	ErrUsernameTaken    = errors.New("username already exists")
-)
-
 // CreateUser inserts a new user into the database
-func (db *appdbimpl) CreateUser(u *schema.User) error {
+func (db *appdbimpl) CreateUser(u *schema.User) (string, error) {
 	if u == nil {
-		return fmt.Errorf("user cannot be nil")
+		return "", fmt.Errorf("user cannot be nil")
 	}
 
 	var exists bool
 	err := db.c.QueryRow(`SELECT EXISTS(SELECT 1 FROM users WHERE username=?)`, u.Username).Scan(&exists)
 	if err != nil {
-		return fmt.Errorf("failed to check username existence: %w", err)
+		return "", fmt.Errorf("failed to check username existence: %w", err)
 	}
 	if exists {
-		return ErrUsernameTaken
+		return "", schema.ErrUsernameTaken
 	}
-
+	u.ID = uuid.New().String()
 	_, err = db.c.Exec(`INSERT INTO users(id, username, photo) VALUES (?, ?, ?)`, u.ID, u.Username, u.Photo)
 	if err != nil {
-		return fmt.Errorf("failed to create user: %w", err)
+		return "", fmt.Errorf("failed to create user: %w", err)
 	}
-	return nil
+	return u.ID, nil
 }
 
 // GetUserByID returns a user by their ID
-func (db *appdbimpl) GetUserByID(userID string) (*schema.User, error) {
+func (db *appdbimpl) GetUserById(userID string) (*schema.User, error) {
 	var u schema.User
 	err := db.c.QueryRow(`SELECT id, username, photo FROM users WHERE id=?`, userID).Scan(&u.ID, &u.Username, &u.Photo)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrUserDoesNotExist
+			return nil, schema.ErrUserDoesNotExist
 		}
 		return nil, fmt.Errorf("failed to get user by ID: %w", err)
 	}
@@ -54,7 +50,7 @@ func (db *appdbimpl) GetUserByName(username string) (*schema.User, error) {
 	err := db.c.QueryRow(`SELECT id, username, photo FROM users WHERE username=?`, username).Scan(&u.ID, &u.Username, &u.Photo)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrUserDoesNotExist
+			return nil, schema.ErrUserDoesNotExist
 		}
 		return nil, fmt.Errorf("failed to get user by username: %w", err)
 	}
@@ -91,7 +87,7 @@ func (db *appdbimpl) UpdateUsername(userID, newUsername string) error {
 		return fmt.Errorf("failed to check username availability: %w", err)
 	}
 	if exists {
-		return ErrUsernameTaken
+		return schema.ErrUsernameTaken
 	}
 
 	res, err := db.c.Exec(`UPDATE users SET username=? WHERE id=?`, newUsername, userID)
@@ -100,7 +96,7 @@ func (db *appdbimpl) UpdateUsername(userID, newUsername string) error {
 	}
 	affected, _ := res.RowsAffected()
 	if affected == 0 {
-		return ErrUserDoesNotExist
+		return schema.ErrUserDoesNotExist
 	}
 	return nil
 }
@@ -113,7 +109,7 @@ func (db *appdbimpl) UpdateUserPhoto(userID string, photo []byte) error {
 		return fmt.Errorf("failed to check user existence: %w", err)
 	}
 	if !exists {
-		return ErrUserDoesNotExist
+		return schema.ErrUserDoesNotExist
 	}
 
 	_, err = db.c.Exec(`UPDATE users SET photo=? WHERE id=?`, photo, userID)

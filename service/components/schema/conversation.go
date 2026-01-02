@@ -1,22 +1,16 @@
 package schema
 
+import "time"
+
 type Conversation struct {
-	ID           string    `json:"id"`
-	Name         string    `json:"name"`
-	GroupPhoto   []byte    `json:"groupPhoto,omitempty"` 
-	IsGroup      bool      `json:"isGroup"` 
-	
-	Participants []User    `json:"participants"` 
-	
-	LastMessage  *Message  `json:"lastMessage,omitempty"` 
-	
-	Messages     []Message `json:"messages,omitempty"`
-}
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	GroupPhoto []byte `json:"groupPhoto,omitempty"`
+	IsGroup    bool   `json:"isGroup"`
 
-type SetGroupNameRequest struct {
-	Name string `json:"name"`
-}
+	Participants []User    `json:"participants"`
+	CreatedAt    time.Time `json:"createdAt"`
+	LastMessage  *Message  `json:"lastMessage,omitempty"`
 
-type SetGroupPhotoRequest struct {
-	Photo []byte `json:"photo"`
+	Messages []Message `json:"messages,omitempty"`
 }

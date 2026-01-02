@@ -35,7 +35,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Crucio104/wasa/service/components/schema"
+	"github.com/visione2604/WASA-Exam/service/components/schema"
 )
 
 // AppDatabase is the high level interface for the DB
@@ -46,14 +46,14 @@ type AppDatabase interface {
 	SearchUserByUsername(username string) ([]schema.User, error)
 	GetUserByName(username string) (*schema.User, error)
 	GetUserById(id string) (*schema.User, error)
-	CreateUser(user *schema.User) error
+	CreateUser(user *schema.User) (string, error)
 	UpdateUsername(userID, newUsername string) error
 	UpdateUserPhoto(userID string, photo []byte) error
 
 	// conversation related
-	GetMyConversations(userID string) ([]*schema.Conversation, error)
+	GetMyConversations(userID string) ([]schema.Conversation, error)
 	GetConversationByID(userID, conversationID string) (*schema.Conversation, error)
-	SearchConversationByName(name string) ([]schema.Conversation, error)
+	SearchConversationByName(name string) ([]*schema.Conversation, error)
 	CreateConversation(conversation *schema.Conversation) error
 	GetLastMessageByConversationID(conversationID string) (*schema.Message, error)
 	EnsureDirectConversation(userID, peerUserID string) (*schema.Conversation, error)
@@ -65,7 +65,7 @@ type AppDatabase interface {
 	LeaveGroup(conversationID, userID string) error
 
 	// message related
-	SendMessage(message *schema.Message) error
+	SendMessage(message *schema.Message, conversationID string) error
 	GetMessagesByConversationID(conversationID string) ([]*schema.Message, error)
 	GetMessageByID(messageID string) (*schema.Message, error)
 	ForwardMessage(message *schema.Message, userID string) error
@@ -104,11 +104,11 @@ func New(db *sql.DB) (AppDatabase, error) {
 
 		// Aligned with Swagger: added is_group and group_photo
 		conversationsTable := `CREATE TABLE conversations (
-			id TEXT NOT NULL PRIMARY KEY,
-			name TEXT NOT NULL,
-			is_group BOOLEAN NOT NULL CHECK (is_group IN (0, 1)),
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-			group_photo BLOB
+    	id TEXT PRIMARY KEY,
+    	name TEXT NOT NULL,
+    	is_group BOOLEAN NOT NULL CHECK (is_group IN (0,1)),
+    	group_photo BLOB,
+    	created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		);`
 
 		conversationMembersTable := `CREATE TABLE conversation_members (

@@ -3,13 +3,15 @@ package schema
 import "time"
 
 type Message struct {
-	ID            string         `json:"id"`
-	Sender        User           `json:"sender"`
-	Content       MessageContent `json:"content"`
-	Timestamp     time.Time      `json:"timestamp"`
-	MessageStatus string         `json:"message_status"`
-	Reactions     []Reaction     `json:"reactions,omitempty"`
-	ForwardedFrom string         `json:"forwarded_from,omitempty"`
+	ID             string         `json:"id"`
+	ConversationID string         `json:"conversationId"`
+	SenderID       string         `json:"senderId"`
+	Sender         User           `json:"sender"`
+	Content        MessageContent `json:"content"`
+	Timestamp      time.Time      `json:"timestamp"`
+	MessageStatus  string         `json:"message_status"`
+	Reactions      []Reaction     `json:"reactions,omitempty"`
+	ForwardedFrom  string         `json:"forwarded_from,omitempty"`
 }
 
 type MessageContent struct {
