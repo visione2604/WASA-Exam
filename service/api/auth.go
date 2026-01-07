@@ -1,0 +1,81 @@
+package api
+
+import (
+	"encoding/json"
+	"errors"
+	"net/http"
+
+	"github.com/julienschmidt/httprouter"
+	"github.com/visione2604/WASA-Exam/service/api/reqcontext"
+	"github.com/visione2604/WASA-Exam/service/components/requests"
+	"github.com/visione2604/WASA-Exam/service/components/schema"
+)
+
+// doLogin handles user login or registration
+func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, _ httprouter.Params, ctx reqcontext.RequestContext) {
+	w.Header().Set("Content-Type", "application/json")
+
+	// Parse request
+	var req requests.LoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		ctx.Logger.WithError(err).Error("Failed to decode login request")
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Validate request
+	if !req.IsValid() {
+		http.Error(w, "Username must be 3-20 characters", http.StatusBadRequest)
+		return
+	}
+
+	// Check if user exists
+	user, err := rt.db.GetUserByName(req.Name)
+	if errors.Is(err, schema.ErrUserDoesNotExist) {
+		// Create new user
+		newUser := &schema.User{
+			Username: req.Name,
+		}
+
+		userID, err := rt.db.CreateUser(newUser)
+		if err != nil {
+			ctx.Logger.WithError(err).Error("Failed to create user")
+			http.Error(w, "Could not create user", http.StatusInternalServerError)
+			return
+		}
+		newUser.ID = userID
+
+		// Generate token
+		tokenString, err := createToken(userID)
+		if err != nil {
+			ctx.Logger.WithError(err).Error("Failed to create token")
+			http.Error(w, "Failed to create token", http.StatusInternalServerError)
+			return
+		}
+
+		// Return 201 Created
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"identifier": tokenString,
+		})
+		return
+	} else if err != nil {
+		ctx.Logger.WithError(err).Error("Failed to get user by name")
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	// User exists, generate token
+	tokenString, err := createToken(user.ID)
+	if err != nil {
+		ctx.Logger.WithError(err).Error("Failed to create token")
+		http.Error(w, "Failed to create token", http.StatusInternalServerError)
+		return
+	}
+
+	// Return 200 OK
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"identifier": tokenString,
+	})
+}

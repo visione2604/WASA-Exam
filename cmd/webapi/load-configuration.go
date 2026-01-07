@@ -3,11 +3,12 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/ardanlabs/conf"
-	"gopkg.in/yaml.v2"
 	"io"
 	"os"
 	"time"
+
+	"github.com/ardanlabs/conf"
+	"gopkg.in/yaml.v2"
 )
 
 // WebAPIConfiguration describes the web API configuration. This structure is automatically parsed by
@@ -25,7 +26,7 @@ type WebAPIConfiguration struct {
 	}
 	Debug bool
 	DB    struct {
-		Filename string `conf:"default:/tmp/decaf.db"`
+		Filename string `conf:"default:/tmp/wasa-exam.db"`
 	}
 }
 
@@ -50,7 +51,6 @@ func loadConfiguration() (WebAPIConfiguration, error) {
 		return cfg, fmt.Errorf("parsing config: %w", err)
 	}
 
-	// Override values from YAML if specified and if it exists (useful in k8s/compose)
 	fp, err := os.Open(cfg.Config.Path)
 	if err != nil && !os.IsNotExist(err) {
 		return cfg, fmt.Errorf("can't read the config file, while it exists: %w", err)

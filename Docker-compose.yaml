@@ -1,0 +1,11 @@
+services:
+  wasa-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    image: wasa-backend:latest
+    container_name: wasa-backend
+    ports:
+      - "3000:3000"
+      - "4000:4000"
+    restart: unless-stopped
