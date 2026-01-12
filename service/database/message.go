@@ -40,14 +40,34 @@ func (db *appdbimpl) SendMessage(msg *schema.Message, conversationID string) err
 }
 
 // GetMessagesByConversationID returns all messages for a conversation
-func (db *appdbimpl) GetMessagesByConversationID(conversationID string) ([]*schema.Message, error) {
+// GetMessagesByConversationID returns all messages for a conversation
+// GetMessagesByConversationID returns all messages for a conversation
+func (db *appdbimpl) GetMessagesByConversationID(conversationID string, currentUserID string) ([]*schema.Message, error) {
 	rows, err := db.c.Query(`
-		SELECT id, senderId, content_type, content_value,
-		       timestamp, status, forwarded_from
-		FROM messages
-		WHERE conversationId = ?
-		ORDER BY timestamp ASC
-	`, conversationID)
+		SELECT 
+			m.id, 
+			m.senderId, 
+			m.content_type, 
+			m.content_value,
+			m.timestamp, 
+			m.forwarded_from,
+			COALESCE(
+				(SELECT 
+					CASE 
+						WHEN COUNT(CASE WHEN ms.readAt IS NULL THEN 1 END) = 0 THEN 'read'
+						WHEN COUNT(CASE WHEN ms.deliveredAt IS NULL THEN 1 END) = 0 THEN 'delivered'
+						ELSE 'sent'
+					END
+				FROM conversation_members cm
+				LEFT JOIN message_status ms ON ms.messageId = m.id AND ms.userId = cm.userId
+				WHERE cm.conversationId = ? AND cm.userId != m.senderId
+				),
+				'sent'
+			) as message_status
+		FROM messages m
+		WHERE m.conversationId = ?
+		ORDER BY m.timestamp ASC
+	`, conversationID, conversationID)
 	if err != nil {
 		return nil, err
 	}
@@ -66,8 +86,8 @@ func (db *appdbimpl) GetMessagesByConversationID(conversationID string) ([]*sche
 			&m.Content.Type,
 			&m.Content.Value,
 			&ts,
-			&m.MessageStatus,
 			&m.ForwardedFrom,
+			&m.MessageStatus,
 		); err != nil {
 			return nil, err
 		}
@@ -93,24 +113,53 @@ func (db *appdbimpl) GetMessagesByConversationID(conversationID string) ([]*sche
 }
 
 // GetMessageByID returns a single message
+// GetMessageByID returns a single message
 func (db *appdbimpl) GetMessageByID(messageID string) (*schema.Message, error) {
 	var m schema.Message
 	var senderID string
 	var ts string
+	var conversationID string
 
+	// Prima ottieni il conversationID
 	err := db.c.QueryRow(`
-		SELECT id, senderId, content_type, content_value,
-		       timestamp, status, forwarded_from
-		FROM messages
-		WHERE id = ?
-	`, messageID).Scan(
+		SELECT conversationId FROM messages WHERE id = ?
+	`, messageID).Scan(&conversationID)
+	if err != nil {
+		return nil, fmt.Errorf("message not found")
+	}
+
+	// Poi ottieni il messaggio con lo status calcolato
+	err = db.c.QueryRow(`
+		SELECT 
+			m.id, 
+			m.senderId, 
+			m.content_type, 
+			m.content_value,
+			m.timestamp, 
+			m.forwarded_from,
+			COALESCE(
+				(SELECT 
+					CASE 
+						WHEN COUNT(CASE WHEN ms.readAt IS NULL THEN 1 END) = 0 THEN 'read'
+						WHEN COUNT(CASE WHEN ms.deliveredAt IS NULL THEN 1 END) = 0 THEN 'delivered'
+						ELSE 'sent'
+					END
+				FROM conversation_members cm
+				LEFT JOIN message_status ms ON ms.messageId = m.id AND ms.userId = cm.userId
+				WHERE cm.conversationId = ? AND cm.userId != m.senderId
+				),
+				'sent'
+			) as message_status
+		FROM messages m
+		WHERE m.id = ?
+	`, conversationID, messageID).Scan(
 		&m.ID,
 		&senderID,
 		&m.Content.Type,
 		&m.Content.Value,
 		&ts,
-		&m.MessageStatus,
 		&m.ForwardedFrom,
+		&m.MessageStatus,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {

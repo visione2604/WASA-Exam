@@ -14,14 +14,12 @@ func (r *AddToGroupRequest) IsValid() bool {
 
 // LeaveGroupRequest is used when a user leaves a group
 type LeaveGroupRequest struct {
-	ConversationID string `json:"conversationId"`
-	UserID         string `json:"userId"`
+	UserID string `json:"userId"`
 }
 
 // IsValid checks if the request has valid IDs
 func (r *LeaveGroupRequest) IsValid() bool {
-	return len(r.ConversationID) > 0 && len(r.ConversationID) <= 36 &&
-		len(r.UserID) > 0 && len(r.UserID) <= 36
+	return len(r.UserID) > 0 && len(r.UserID) <= 36
 }
 
 // SetGroupNameRequest is used when changing a group name
@@ -42,6 +40,6 @@ type SetGroupPhotoRequest struct {
 
 // IsValid checks if the photo data is present and within size limits
 func (r *SetGroupPhotoRequest) IsValid() bool {
-	// Photo must be present and not exceed 5MB
-	return len(r.Photo) > 0 && len(r.Photo) <= (5*1024*1024)
+	// Photo must be present and not exceed 10MB
+	return len(r.Photo) > 0 && len(r.Photo) <= (10*1024*1024)
 }

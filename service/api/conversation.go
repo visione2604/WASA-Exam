@@ -34,22 +34,20 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, _ 
 }
 
 // getConversation returns a single conversation with all messages
+// getConversation returns a single conversation with all messages
 func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
-	// Get conversation ID from URL
 	conversationID := ps.ByName("conversationId")
 	if conversationID == "" {
 		http.Error(w, "Missing conversation ID", http.StatusBadRequest)
 		return
 	}
 
-	// Get authenticated user
 	userID, err := rt.getAuthenticatedUserID(r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	// Get conversation
 	conversation, err := rt.db.GetConversationByID(userID, conversationID)
 	if err != nil {
 		ctx.Logger.WithError(err).Error("Failed to get conversation")
@@ -57,8 +55,7 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps ht
 		return
 	}
 
-	// Get messages
-	messages, err := rt.db.GetMessagesByConversationID(conversationID)
+	messages, err := rt.db.GetMessagesByConversationID(conversationID, userID)
 	if err != nil {
 		ctx.Logger.WithError(err).Error("Failed to get messages")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

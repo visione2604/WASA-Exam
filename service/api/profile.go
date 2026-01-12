@@ -62,6 +62,22 @@ func (rt *_router) searchBy(w http.ResponseWriter, r *http.Request, _ httprouter
 		ctx.Logger.WithError(err).Error("Failed to encode response")
 	}
 }
+func (rt *_router) getAllUsers(w http.ResponseWriter, r *http.Request, _ httprouter.Params, ctx reqcontext.RequestContext) {
+	users, err := rt.db.GetAllUsers()
+	if err != nil {
+		ctx.Logger.WithError(err).Error("failed to get users")
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
+		"users": users,
+	}); err != nil {
+		ctx.Logger.WithError(err).Error("Failed to encode response")
+	}
+}
 
 // setMyUserName updates the authenticated user's username
 func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, _ httprouter.Params, ctx reqcontext.RequestContext) {

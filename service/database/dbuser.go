@@ -30,6 +30,26 @@ func (db *appdbimpl) CreateUser(u *schema.User) (string, error) {
 	}
 	return u.ID, nil
 }
+func (db *appdbimpl) GetAllUsers() ([]schema.User, error) {
+	rows, err := db.c.Query(`SELECT id, username, photo FROM users`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch users: %w", err)
+	}
+	defer rows.Close()
+
+	var users []schema.User
+	for rows.Next() {
+		var u schema.User
+		if err := rows.Scan(&u.ID, &u.Username, &u.Photo); err != nil {
+			return nil, fmt.Errorf("failed to scan user: %w", err)
+		}
+		users = append(users, u)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating users: %w", err)
+	}
+	return users, nil
+}
 
 // GetUserByID returns a user by their ID
 func (db *appdbimpl) GetUserById(userID string) (*schema.User, error) {

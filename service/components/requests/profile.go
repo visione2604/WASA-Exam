@@ -26,6 +26,6 @@ type ProfilePhotoUpdateRequest struct {
 
 // IsValid checks if the photo data is present and within size limits
 func (r *ProfilePhotoUpdateRequest) IsValid() bool {
-	// Photo must be present and not exceed 5MB
-	return len(r.Photo) > 0 && len(r.Photo) <= (5*1024*1024)
+	// Photo must be present and not exceed 10MB
+	return len(r.Photo) > 0 && len(r.Photo) <= (10*1024*1024)
 }

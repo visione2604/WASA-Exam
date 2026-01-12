@@ -2,13 +2,13 @@ package requests
 
 // MessageContent represents the content of a message
 type MessageContent struct {
-	Type  string `json:"type"`  // "text" or "photo"
+	Type  string `json:"type"`  // "text", "image", or "photo"
 	Value string `json:"value"` // text content or base64 encoded photo
 }
 
 // IsValid checks if the message content is valid
 func (c *MessageContent) IsValid() bool {
-	if c.Type != "text" && c.Type != "photo" {
+	if c.Type != "text" && c.Type != "photo" && c.Type != "image" {
 		return false
 	}
 
@@ -17,9 +17,9 @@ func (c *MessageContent) IsValid() bool {
 		return len(c.Value) >= 1 && len(c.Value) <= 1000
 	}
 
-	if c.Type == "photo" {
-		// Photo must be present and not exceed 5MB (base64 encoded)
-		return len(c.Value) >= 1 && len(c.Value) <= (7*1024*1024) // ~5MB after base64 encoding
+	if c.Type == "photo" || c.Type == "image" {
+		// Photo must be present and not exceed 10MB (base64 encoded)
+		return len(c.Value) >= 1 && len(c.Value) <= (10*1024*1024) // ~5MB after base64 encoding
 	}
 
 	return false

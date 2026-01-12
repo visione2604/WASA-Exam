@@ -53,11 +53,15 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, _ httprouter.
 			return
 		}
 
-		// Return 201 Created
-		w.WriteHeader(http.StatusCreated)
-		_ = json.NewEncoder(w).Encode(map[string]string{
+		response := map[string]interface{}{
 			"identifier": tokenString,
-		})
+			"id":         user.ID,
+			"username":   user.Username,
+			"photo":      user.Photo,
+		}
+		// Return 200 OK
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(response)
 		return
 	} else if err != nil {
 		ctx.Logger.WithError(err).Error("Failed to get user by name")
@@ -72,10 +76,14 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, _ httprouter.
 		http.Error(w, "Failed to create token", http.StatusInternalServerError)
 		return
 	}
-
+	response := map[string]interface{}{
+		"identifier": tokenString,
+		"id":         user.ID,
+		"username":   user.Username,
+		"photo":      user.Photo,
+	}
 	// Return 200 OK
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"identifier": tokenString,
-	})
+	_ = json.NewEncoder(w).Encode(response)
+
 }
