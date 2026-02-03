@@ -238,7 +238,7 @@ func (db *appdbimpl) ForwardMessage(msg *schema.Message, userID string) error {
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	`,
 		msg.ID,
-		msg.Sender.ID,
+		msg.ConversationID,
 		msg.Sender.ID,
 		msg.Content.Type,
 		msg.Content.Value,

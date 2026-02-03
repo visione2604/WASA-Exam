@@ -35,18 +35,6 @@ func (r *SendMessageRequest) IsValid() bool {
 	return r.Content.IsValid()
 }
 
-// DeleteMessageRequest is used when deleting a message
-type DeleteMessageRequest struct {
-	ConversationID string `json:"conversationId"`
-	MessageID      string `json:"messageId"`
-}
-
-// IsValid checks if the delete request has valid IDs
-func (r *DeleteMessageRequest) IsValid() bool {
-	return len(r.ConversationID) > 0 && len(r.ConversationID) <= 36 &&
-		len(r.MessageID) > 0 && len(r.MessageID) <= 36
-}
-
 // ForwardMessageRequest is used when forwarding a message to another conversation
 type ForwardMessageRequest struct {
 	TargetConversationID string `json:"targetConversationId"`

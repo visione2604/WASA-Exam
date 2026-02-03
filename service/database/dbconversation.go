@@ -240,7 +240,7 @@ func (db *appdbimpl) EnsureDirectConversation(userID, peerUserID string) (*schem
         FROM conversations c
         JOIN conversation_members cm1 ON cm1.conversationId = c.id AND cm1.userId = ?
         JOIN conversation_members cm2 ON cm2.conversationId = c.id AND cm2.userId = ?
-        WHERE c.type = 'direct'
+        WHERE c.is_group = 0
         LIMIT 1
     `, userID, peerUserID).Scan(&conversationID)
 	if err == nil {

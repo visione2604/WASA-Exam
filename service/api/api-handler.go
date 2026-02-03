@@ -20,6 +20,7 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.GET("/conversations", rt.wrap(rt.getMyConversations))
 	rt.router.GET("/conversations/:conversationId", rt.wrap(rt.getConversation))
 	rt.router.GET("/conversations/:conversationId/members", rt.wrap(rt.getConversationMembers))
+	rt.router.DELETE("/conversations/:conversationId", rt.wrap(rt.deleteConversation))
 
 	// --- MESSAGES ---
 	rt.router.POST("/conversations/:conversationId/messages", rt.wrap(rt.sendMessage))

@@ -11,7 +11,7 @@ import (
 
 // getMyConversations returns all conversations for the authenticated user
 func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, _ httprouter.Params, ctx reqcontext.RequestContext) {
-	// Get authenticated user
+
 	userID, err := rt.getAuthenticatedUserID(r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -26,7 +26,6 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, _ 
 		return
 	}
 
-	// Return conversations
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(conversations); err != nil {
 		ctx.Logger.WithError(err).Error("Failed to encode conversations")
@@ -34,7 +33,7 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, _ 
 }
 
 // getConversation returns a single conversation with all messages
-// getConversation returns a single conversation with all messages
+
 func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	conversationID := ps.ByName("conversationId")
 	if conversationID == "" {
@@ -77,7 +76,6 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps ht
 		conversation.Messages[i] = *msg
 	}
 
-	// Return conversation
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(conversation); err != nil {
 		ctx.Logger.WithError(err).Error("Failed to encode conversation")
@@ -114,14 +112,13 @@ func (rt *_router) getConversationMembers(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Return members
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(members)
 }
 
 // createDirectConversation creates or retrieves a direct conversation between two users
 func (rt *_router) createDirectConversation(w http.ResponseWriter, r *http.Request, _ httprouter.Params, ctx reqcontext.RequestContext) {
-	// Get authenticated user
+
 	userID, err := rt.getAuthenticatedUserID(r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -145,8 +142,32 @@ func (rt *_router) createDirectConversation(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Return conversation
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(conv)
+}
+
+// deleteConversation deletes a conversation (leaves it for the user)
+func (rt *_router) deleteConversation(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+	conversationID := ps.ByName("conversationId")
+	if conversationID == "" {
+		http.Error(w, "Missing conversation ID", http.StatusBadRequest)
+		return
+	}
+
+	userID, err := rt.getAuthenticatedUserID(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Leave the conversation (for both direct and groups)
+	err = rt.db.LeaveGroup(conversationID, userID)
+	if err != nil {
+		ctx.Logger.WithError(err).Error("Failed to delete/leave conversation")
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

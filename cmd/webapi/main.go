@@ -34,8 +34,8 @@ import (
 	"syscall"
 
 	"github.com/ardanlabs/conf"
-	"github.com/sirupsen/logrus"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/sirupsen/logrus"
 
 	"github.com/visione2604/WASA-Exam/service/api"
 	"github.com/visione2604/WASA-Exam/service/database"
@@ -98,7 +98,7 @@ func run() error {
 		return fmt.Errorf("creating AppDatabase: %w", err)
 	}
 
-	// Start (main) API server
+	// Start main API server
 	logger.Info("initializing API server")
 
 	// Make a channel to listen for an interrupt or terminate signal from the OS.
@@ -147,33 +147,27 @@ func run() error {
 		logger.Infof("stopping API server")
 	}()
 
-	// Waiting for shutdown signal or POSIX signals
 	select {
 	case err := <-serverErrors:
-		// Non-recoverable server error
 		return fmt.Errorf("server error: %w", err)
 
 	case sig := <-shutdown:
 		logger.Infof("signal %v received, start shutdown", sig)
 
-		// Asking API server to shut down and load shed.
 		err := apirouter.Close()
 		if err != nil {
 			logger.WithError(err).Warning("graceful shutdown of apirouter error")
 		}
 
-		// Give outstanding requests a deadline for completion.
 		ctx, cancel := context.WithTimeout(context.Background(), cfg.Web.ShutdownTimeout)
 		defer cancel()
 
-		// Asking listener to shut down and load shed.
 		err = apiserver.Shutdown(ctx)
 		if err != nil {
 			logger.WithError(err).Warning("error during graceful shutdown of HTTP server")
 			err = apiserver.Close()
 		}
 
-		// Log the status of this shutdown.
 		switch {
 		case sig == syscall.SIGSTOP:
 			return errors.New("integrity issue caused shutdown")

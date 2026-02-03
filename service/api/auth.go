@@ -59,7 +59,6 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, _ httprouter.
 			"username":   user.Username,
 			"photo":      user.Photo,
 		}
-		// Return 200 OK
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(response)
 		return
@@ -69,7 +68,6 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, _ httprouter.
 		return
 	}
 
-	// User exists, generate token
 	tokenString, err := createToken(user.ID)
 	if err != nil {
 		ctx.Logger.WithError(err).Error("Failed to create token")
@@ -82,7 +80,7 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, _ httprouter.
 		"username":   user.Username,
 		"photo":      user.Photo,
 	}
-	// Return 200 OK
+
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(response)
 

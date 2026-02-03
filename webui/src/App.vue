@@ -23,7 +23,6 @@
 
     <!-- New Chat -->
     <button
-      v-if="$route.path === '/home'"
       class="btn-icon"
       title="New Chat"
       @click="emitNewChat"

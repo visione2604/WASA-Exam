@@ -16,20 +16,3 @@ func (r *AddReactionRequest) IsValid() bool {
 	}
 	return validTypes[r.Type]
 }
-
-// RemoveReactionRequest is used when removing a reaction from a message
-type RemoveReactionRequest struct {
-	Type string `json:"type"` // like, heart, laugh, sad_face, angry_face
-}
-
-// IsValid checks if the reaction type is valid
-func (r *RemoveReactionRequest) IsValid() bool {
-	validTypes := map[string]bool{
-		"like":       true,
-		"heart":      true,
-		"laugh":      true,
-		"sad_face":   true,
-		"angry_face": true,
-	}
-	return validTypes[r.Type]
-}

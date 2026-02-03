@@ -13,14 +13,13 @@ import (
 
 // createGroup creates a new group conversation
 func (rt *_router) createGroup(w http.ResponseWriter, r *http.Request, _ httprouter.Params, ctx reqcontext.RequestContext) {
-	// Get authenticated user
+
 	userID, err := rt.getAuthenticatedUserID(r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	// Parse request
 	var body struct {
 		GroupName  string   `json:"groupName"`
 		Members    []string `json:"members"`
@@ -31,7 +30,6 @@ func (rt *_router) createGroup(w http.ResponseWriter, r *http.Request, _ httprou
 		return
 	}
 
-	// Validate input
 	if body.GroupName == "" || len(body.Members) == 0 {
 		http.Error(w, "Group name and members are required", http.StatusBadRequest)
 		return

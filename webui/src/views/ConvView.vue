@@ -83,7 +83,7 @@
         <div v-else-if="item.type === 'message'" class="msg-row-neon" :class="{ own: isOwn(item.value) }">
           <div class="bubble-neon">
             <div class="sender-name-neon">
-              {{ isOwn(item.value) ? 'You' : (item.value.sender?.username || 'Unknown') }}
+              {{ item.value.sender?.username || 'Unknown' }}
             </div>
             
             <div v-if="item.value.forwarded_from" class="fwd-neon">
@@ -169,7 +169,7 @@
         <div v-else-if="item.type === 'messageCombined'" class="msg-row-neon" :class="{ own: isOwn(item.primary) }">
           <div class="bubble-neon">
             <div class="sender-name-neon">
-              {{ isOwn(item.primary) ? 'You' : (item.primary?.sender?.username || 'Unknown') }}
+              {{ item.primary?.sender?.username || 'Unknown' }}
             </div>
 
             <div v-if="item.primary?.forwarded_from" class="fwd-neon">
@@ -1173,13 +1173,7 @@ export default {
         await this.$axios.post(`/conversations/${this.effectiveConversationId}/messages/${m.id}/status`, { status: 'read' }, { headers });
         anyMarked = true;
       } catch (e) {
-        console.error('Failed to mark message as read:', e);
       }
-    }
-    
-    // Se abbiamo marcato qualcosa come letto, forza un reload dopo un attimo
-    if (anyMarked) {
-      setTimeout(() => this.load(), 500);
     }
   } catch (e) {
     console.error('Error marking messages as read:', e);
@@ -1591,62 +1585,108 @@ async unreact(messageId, type) {
         }
     },
    async selectForwardUser(user) {
-  if (!user || !this.forward.messageId || !this.forward.fromConvId) return
+  if (!user || !this.forward.messageId) return
+  
+  this.forwarding = true
   
   try {
     const token = localStorage.getItem('token')
     const headers = token ? { Authorization: `Bearer ${token}` } : {}
     
+    // 🆕 STEP 1: Ricarica la lista conversazioni PRIMA di cercare
+    console.log('📋 Reloading conversations list before search...')
+    await this.loadConversationsList()
     
+    console.log('📊 Total conversations:', this.allConversations.length)
+    console.log('🔍 Looking for existing chat with user:', user.id, user.username)
+    
+    // 🆕 STEP 2: Debug - mostra tutte le conversazioni
+    this.allConversations.forEach((conv, idx) => {
+      const participants = conv.participants || []
+      const participantIds = participants.map(p => String(p?.id || p?.userId || ''))
+      console.log(`  Conv ${idx}:`, {
+        id: conv.id || conv.conversationId,
+        isGroup: conv.isGroup,
+        participantIds: participantIds
+      })
+    })
+    
+    // 🔍 CERCA CONVERSAZIONE ESISTENTE
     const myUserId = String(this.userId || '')
+    const targetUserId = String(user.id)
+    
     const existingConv = this.allConversations.find(conv => {
-      
-      if (conv.isGroup) return false
+      // Ignora gruppi
+      if (conv.isGroup === true) {
+        console.log('  ⏭️  Skipping group:', conv.id)
+        return false
+      }
       
       const participants = conv.participants || []
-     
-      return participants.some(p => {
-        const pId = String(p?.id || p?.userId || '')
-        return pId === String(user.id)
-      })
+      
+      // Debug participants
+      console.log('  🔎 Checking conv:', conv.id || conv.conversationId, 'participants:', participants.length)
+      
+      // Controlla se questa conversazione contiene ESATTAMENTE 2 persone: me e target
+      const participantIds = participants.map(p => String(p?.id || p?.userId || ''))
+      
+      const hasMe = participantIds.includes(myUserId)
+      const hasTarget = participantIds.includes(targetUserId)
+      const isTwoPersonChat = participants.length === 2
+      
+      console.log('    hasMe:', hasMe, 'hasTarget:', hasTarget, 'isTwoPersonChat:', isTwoPersonChat)
+      
+      return hasMe && hasTarget && isTwoPersonChat
     })
     
     let targetId
     
     if (existingConv) {
-      
+      // ✅ USA LA CONVERSAZIONE ESISTENTE
       targetId = existingConv.id || existingConv.conversationId
+      console.log('✅ FOUND existing conversation:', targetId)
     } else {
-     
+      // ❌ CREA NUOVA CONVERSAZIONE
+      console.log('❌ NO existing conversation found, creating new...')
       const response = await this.$axios.post('/direct-conversations', { peerUserId: user.id }, { headers })
       const conv = response?.data || {}
       targetId = conv.id || conv.ID || conv.conversationId || conv.conversation_id
+      console.log('🆕 Created new conversation:', targetId)
     }
     
-    if (!targetId) { 
-      this.errormsg = 'Failed to create conversation'
-      return 
+    if (!targetId) {
+      console.error('❌ Failed to get targetId')
+      this.errorMessage = 'Failed to get conversation'
+      return
     }
+    
+    // 🔄 FORWARD IL MESSAGGIO
+    console.log('📤 Forwarding message:')
+    console.log('  From:', this.effectiveConversationId)
+    console.log('  To:', targetId)
+    console.log('  MessageId:', this.forward.messageId)
     
     await this.$axios.post(
-      `/conversations/${this.forwardMode.fromConvId}/messages/${this.forwardMode.messageId}/forward`,
+      `/conversations/${this.effectiveConversationId}/messages/${this.forward.messageId}/forward`,
       { targetConversationId: targetId },
       { headers }
     )
     
-    await this.refresh()
+    console.log('✅ Forward successful!')
     
-    this.selectedConvId = targetId
-    this.exitForwardMode()
-    this.$router.push({ path: '/home', query: { conv: targetId } })
-  } catch (e) {
-            console.error('Failed to forward to user', e);
-            console.error('Error response:', e.response?.data);
-            this.errorMessage = e.response?.data?.error || e.response?.data?.message || 'Failed to forward message';
-        } finally {
-            this.forwarding = false;
-        }
-    },
+    this.closeForward()
+    
+    // Redirect alla conversazione target
+    this.$router.push(`/conversations/${targetId}`)
+    
+  } catch (error) {
+    console.error('❌ Failed to forward to user', error)
+    console.error('Error response:', error.response?.data)
+    this.errorMessage = error.response?.data?.error || error.response?.data?.message || 'Failed to forward message'
+  } finally {
+    this.forwarding = false
+  }
+},
     async forwardToConversation(conversationId) {
         if (!this.forward.messageId || !conversationId) return;
         this.forwarding = true;
@@ -1846,7 +1886,7 @@ async unreact(messageId, type) {
 
   mounted() {
   this.load();
-  
+  this.loadConversationsList(); 
   // Aggiungi listener per lo scroll
   this.$nextTick(() => {
     const scrollArea = this.$refs.scrollArea;

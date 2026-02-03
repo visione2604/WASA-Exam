@@ -15,7 +15,7 @@ tags:
   - name: Group
 
 paths:
-  /doLogin:
+  /login:
     post:
       tags:
         - Auth
@@ -57,7 +57,49 @@ paths:
                   identifier:
                     type: string
 
-  /user/changename:
+  /users:
+    get:
+      tags:
+        - Profile
+      summary: Get all users
+      operationId: getAllUsers
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                    $ref: '#/components/schemas/User'
+
+  /searchby:
+    get:
+      tags:
+        - Profile
+      summary: Search users
+      operationId: searchBy
+      parameters:
+        - name: user
+          in: query
+          description: Username to search for
+          schema:
+            type: string
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of matching users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                    $ref: '#/components/schemas/User'
+
+  /user/username:
     put:
       tags:
         - Profile
@@ -81,7 +123,31 @@ paths:
         '400':
           description: Error
 
-  /user/conversations:
+  /user/photo:
+    put:
+      tags:
+        - Profile
+      summary: Set profile photo
+      operationId: setMyPhoto
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - photo
+              properties:
+                photo:
+                  type: string
+                  format: byte
+      responses:
+        '200':
+          description: Updated
+  
+  /conversations:
     get:
       tags:
         - Conversation
@@ -99,7 +165,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/Conversation'
 
-  /conversation/{id}:
+  /conversations/{conversationId}:
     get:
       tags:
         - Conversation
@@ -108,7 +174,7 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - name: id
+        - name: conversationId
           in: path
           required: true
           schema:
@@ -120,8 +186,74 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Conversation'
+    delete:
+      tags:
+        - Conversation
+      summary: Delete or leave a conversation
+      operationId: deleteConversation
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Deleted/Left successfully
 
-  /conversation/{id}/sendMessage:
+  /conversations/{conversationId}/members:
+    get:
+        tags:
+            - Conversation
+        summary: Get conversation members
+        operationId: getConversationMembers
+        security:
+            - BearerAuth: []
+        parameters:
+            - name: conversationId
+              in: path
+              required: true
+              schema:
+                type: string
+        responses:
+            '200':
+                description: List of members
+                content:
+                    application/json:
+                        schema:
+                            type: array
+                            items:
+                                $ref: '#/components/schemas/User'
+
+  /direct-conversations:
+    post:
+        tags:
+            - Conversation
+        summary: Create or get direct conversation
+        operationId: createDirectConversation
+        security:
+            - BearerAuth: []
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required: [peerUserId]
+                        properties:
+                            peerUserId:
+                                type: string
+        responses:
+            '201':
+                description: Conversation created/retrieved
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Conversation'
+
+  /conversations/{conversationId}/messages:
     post:
       tags:
         - Message
@@ -130,7 +262,7 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - name: id
+        - name: conversationId
           in: path
           required: true
           schema:
@@ -163,7 +295,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Message'
 
-  /conversation/{conversationId}/messages/{messageId}:
+  /conversations/{conversationId}/messages/{messageId}:
     delete:
       tags:
         - Message
@@ -186,7 +318,7 @@ paths:
         '200':
           description: Deleted
 
-  /conversation/{sourceConversationId}/messages/{messageId}/forward:
+  /conversations/{conversationId}/messages/{messageId}/forward:
     post:
       tags:
         - Message
@@ -195,7 +327,7 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - name: sourceConversationId
+        - name: conversationId
           in: path
           required: true
           schema:
@@ -223,12 +355,46 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Message'
+  
+  /conversations/{conversationId}/messages/{messageId}/status:
+    post:
+      tags:
+        - Message
+      summary: Set message status
+      operationId: setMessageStatus
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [delivered, read]
+      responses:
+        '200':
+          description: Status updated
 
-  /conversation/{conversationId}/messages/{messageId}/reactions:
+  /conversations/{conversationId}/messages/{messageId}/reaction:
     post:
       tags: [Reaction]
       summary: Add a reaction to a message
-      operationId: commentMessage
+      operationId: addReaction
       security:
         - BearerAuth: []
       parameters:
@@ -278,12 +444,10 @@ paths:
                     type: string
                     example: "Message not found"
 
-
-  /conversation/{conversationId}/messages/{messageId}/reactions/{type}:
     delete:
       tags: [Reaction]
       summary: Remove a reaction from a message
-      operationId: uncommentMessage
+      operationId: removeReaction
       security:
         - BearerAuth: []
       parameters:
@@ -297,17 +461,22 @@ paths:
           required: true
           schema:
             type: string
-        - name: type
-          in: path
-          required: true
-          schema:
-            type: string
-            enum: [like, heart, laugh,sad_face,angry_face]
+      requestBody:
+        required: true
+        content:
+            application/json:
+                schema:
+                    type: object
+                    required: [type]
+                    properties:
+                        type:
+                            type: string
+                            enum: [like, heart, laugh,sad_face,angry_face]
       responses:
         '200':
           description: Reaction removed successfully
         '400':
-          description: Invalid request (e.g., user hasn’t reacted)
+          description: Invalid request
           content:
             application/json:
               schema:
@@ -315,74 +484,95 @@ paths:
                 properties:
                   error:
                     type: string
-                    example: "You haven’t reacted with this type"
         '404':
           description: Message or conversation not found
-          content:
-            application/json:
+
+  /groups:
+    post:
+        tags: [Group]
+        summary: Create a group
+        operationId: createGroup
+        security:
+            - BearerAuth: []
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required: [groupName, members]
+                        properties:
+                            groupName:
+                                type: string
+                            members:
+                                type: array
+                                items:
+                                    type: string
+                            groupPhoto:
+                                type: string
+                                format: byte
+        responses:
+            '201':
+                description: Group created
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Conversation'
+
+  /groups/{groupId}:
+    post:
+        tags: [Group]
+        summary: Add user to group
+        operationId: addToGroup
+        security:
+            - BearerAuth: []
+        parameters:
+            - name: groupId
+              in: path
+              required: true
               schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Message not found"
-
-
-  /conversation/{conversationId}/participants/{userId}:
-    put:
-      tags: [Group]
-      summary: Add user to group
-      description: Allows an existing group member to add another user to the conversation.
-      operationId: addToGroup
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: conversationId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: User successfully added to the group
-        '400':
-          description: Invalid operation (e.g., user already in group)
-        '404':
-          description: Conversation or user not found
+                type: string
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required: [userId]
+                        properties:
+                            userId:
+                                type: string
+        responses:
+            '204':
+                description: User added
 
     delete:
-      tags: [Group]
-      summary: Remove a user from the group or leave group
-      description: Allows a user to leave a conversation or removes a specified user.
-      operationId: leaveGroup
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: conversationId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: User successfully removed from group
-        '400':
-          description: Invalid operation (e.g., user not in group)
-        '404':
-          description: Conversation or user not found
+        tags: [Group]
+        summary: Remove user from group (or leave if self)
+        operationId: leaveGroup
+        security:
+            - BearerAuth: []
+        parameters:
+            - name: groupId
+              in: path
+              required: true
+              schema:
+                type: string
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required: [userId]
+                        properties:
+                            userId:
+                                type: string
+        responses:
+            '204':
+                description: User removed
 
-
-  /conversation/{conversationId}/name:
+  /groups/{groupId}/name:
     put:
       tags:
         - Group
@@ -391,7 +581,7 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - name: conversationId
+        - name: groupId
           in: path
           required: true
           schema:
@@ -411,7 +601,7 @@ paths:
         '200':
           description: Updated
 
-  /conversation/{conversationId}/photo:
+  /groups/{groupId}/photo:
     put:
       tags:
         - Group
@@ -420,7 +610,7 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - name: conversationId
+        - name: groupId
           in: path
           required: true
           schema:
@@ -441,29 +631,14 @@ paths:
         '200':
           description: Updated
 
-  /user/photo:
-    put:
-      tags:
-        - Profile
-      summary: Set profile photo
-      operationId: setMyPhoto
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - photo
-              properties:
-                photo:
-                  type: string
-                  format: byte
-      responses:
-        '200':
-          description: Updated
+  /liveness:
+    get:
+        tags: [System]
+        summary: Health check
+        operationId: liveness
+        responses:
+            '200':
+                description: OK
   
 components:
   securitySchemes:
@@ -542,6 +717,9 @@ components:
         message_status:
           type: string
           enum: [sent, delivered, read]
+        forwarded_from:
+          type: string
+          nullable: true
         reactions:
           type: array
           items:

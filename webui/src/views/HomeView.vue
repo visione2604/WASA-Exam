@@ -27,42 +27,13 @@
     <!-- Chat Layout -->
     <div v-else class="chat-layout">
       <!-- Sidebar: Conversations List -->
-      <aside class="conversations-sidebar">
+      <aside class="conversations-sidebar" :class="{ 'forward-mode': forwardMode.active }">
+
   <!-- Header: Search o Forward Mode -->
   <div class="sidebar-header">
-    <!-- Forward Mode -->
-    <div v-if="forwardMode.active" class="forward-mode">
-      <div class="forward-header">
-        <span>Forward message to:</span>
-        <button @click="exitForwardMode" class="btn-exit">×</button>
-      </div>
-      <input
-        v-model="forwardMode.search"
-        class="neon-search"
-        placeholder="Search users..."
-        @input="onForwardSearchInput"
-      />
-      <div v-if="forwardMode.loading" class="forward-loading">
-        Searching...
-      </div>
-      <div v-if="forwardMode.suggestions.length" class="forward-suggestions">
-        <div 
-          v-for="u in forwardMode.suggestions" 
-          :key="u.id" 
-          class="forward-item"
-          @click="selectForwardUser(u)"
-        >
-          <div class="user-avatar">
-            {{ u.username.charAt(0).toUpperCase() }}
-          </div>
-          <span>{{ u.username }}</span>
-        </div>
-      </div>
-      <p class="forward-hint">Or tap a conversation below</p>
-    </div>
-
+    
     <!-- Normal Search -->
-    <div v-else class="search-box">
+    <div class="search-box">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-icon">
         <circle cx="11" cy="11" r="8"></circle>
         <path d="m21 21-4.35-4.35"></path>
@@ -102,15 +73,23 @@
 
       <!-- Main: Chat View -->
       <main class="chat-main">
-        <div v-if="selectedConvId" class="chat-shell">
-          <ConvView
-            :key="selectedConvId"
-            :conversationId="selectedConvId"
-            :embedded="true"
-            @conversation-deleted="onConversationDeleted"
-            @group-updated="onGroupUpdated"
-          />
-        </div>
+         <!-- Forward Mode Banner -->
+          <div v-if="selectedConvId" class="chat-shell">
+  <!-- Badge Forward Mode -->
+  <div v-if="forwardMode.active" class="forward-badge">
+    📤 Forwarding
+    <button class="exit-forward" @click="exitForwardMode">×</button>
+  </div>
+
+  <ConvView
+    :key="selectedConvId"
+    :conversationId="selectedConvId"
+    :embedded="true"
+    @conversation-deleted="onConversationDeleted"
+    @group-updated="onGroupUpdated"
+  />
+</div>
+
         <div v-else class="no-selection">
           <div class="selection-icon">💭</div>
           <h3>Select a conversation</h3>
@@ -401,45 +380,59 @@ export default {
     },
     
     async selectForwardUser(user) {
-      if (!user || !this.forwardMode.messageId || !this.forwardMode.fromConvId) return
+  if (!user || !this.forwardMode.messageId || !this.forwardMode.fromConvId) return
+  
+  try {
+    const token = localStorage.getItem('token')
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}
+    
+    const myUserId = String(this.userId || '')
+    const existingConv = this.conversations.find(conv => {
+      // Salta i gruppi
+      if (conv.isGroup === true) return false
       
-      try {
-        const token = localStorage.getItem('token')
-        const headers = token ? { Authorization: `Bearer ${token}` } : {}
-        
-        const response = await this.$axios.post('/direct-conversations', { peerUserId: user.id }, { headers })
-        const conv = response?.data || {}
-        const targetId = conv.id || conv.ID || conv.conversationId || conv.conversation_id
-        
-        if (!targetId) { 
-          this.errormsg = 'Failed to create conversation'
-          return 
-        }
-        
-        await this.$axios.post(
-          `/conversations/${this.forwardMode.fromConvId}/messages/${this.forwardMode.messageId}/forward`,
-          { targetConversationId: targetId },
-          { headers }
-        )
-        
-        await this.refresh()
-        
-        if (!this.conversations.some(c => c && c.id === targetId)) {
-          this.conversations.unshift({
-            id: targetId,
-            name: conv.name || user.username || 'Direct Chat',
-            isGroup: false,
-            profilePhoto: conv.profilePhoto || null
-          })
-        }
-        
-        this.selectedConvId = targetId
-        this.exitForwardMode()
-        this.$router.push({ path: '/home', query: { conv: targetId } })
-      } catch (e) {
-        this.errormsg = e?.response?.data?.error || 'Failed to forward message'
-      }
-    },
+      const participants = conv.participants || []
+      // Controlla se c'è questo utente tra i partecipanti (chat 1-a-1)
+      return participants.some(p => {
+        const pId = String(p?.id || p?.userId || '')
+        return pId === String(user.id)
+      }) && participants.length === 2 // Assicurati che sia una chat diretta
+    })
+    
+    let targetId
+    
+    if (existingConv) {
+      // Usa la conversazione esistente
+      targetId = existingConv.id || existingConv.conversationId
+    } else {
+      // Crea nuova conversazione solo se non esiste
+      const response = await this.$axios.post('/direct-conversations', { peerUserId: user.id }, { headers })
+      const conv = response?.data || {}
+      targetId = conv.id || conv.ID || conv.conversationId || conv.conversation_id
+    }
+    
+    if (!targetId) { 
+      this.errormsg = 'Failed to create conversation'
+      return 
+    }
+    
+    // Forward il messaggio
+    await this.$axios.post(
+      `/conversations/${this.forwardMode.fromConvId}/messages/${this.forwardMode.messageId}/forward`,
+      { targetConversationId: targetId },
+      { headers }
+    )
+    
+    await this.refresh()
+    
+    this.selectedConvId = targetId
+    this.exitForwardMode()
+    this.$router.push({ path: '/home', query: { conv: targetId } })
+  } catch (e) {
+    console.error('Failed to forward message:', e)
+    this.errormsg = e?.response?.data?.error || 'Failed to forward message'
+  }
+},
     
     onConversationDeleted(payload) {
       const deletedId = String(payload?.deletedId || '')
@@ -821,23 +814,44 @@ export default {
   box-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
   background: rgba(0, 20, 40, 0.6);
 }
-
-/* Forward Mode */
-.forward-mode {
-  padding: 1rem;
-  border-bottom: 1px solid rgba(0, 229, 255, 0.2);
-  background: rgba(138, 43, 226, 0.1);
+.conversations-sidebar.forward-mode {
+  border-right: 4px solid #00e5ff;
+  box-shadow: 0 0 15px #00e5ff inset;
+  animation: neon-glow 1.5s infinite alternate;
 }
 
-.forward-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
-  color: #8a2be2;
-  font-weight: 600;
-  font-size: 0.875rem;
+@keyframes neon-glow {
+  0% {
+    box-shadow: 0 0 5px #00e5ff inset;
+  }
+  50% {
+    box-shadow: 0 0 20px #00e5ff inset;
+  }
+  100% {
+    box-shadow: 0 0 10px #00e5ff inset;
+  }
 }
+.conversations-sidebar.forward-mode .conv-item {
+  border-left: 4px solid rgba(0, 229, 255, 0.6);
+}
+
+.conversations-sidebar.forward-mode .conv-item.active:hover {
+  background-color: rgba(0, 229, 255, 0.2);
+}
+
+
+.forward-badge button.exit-forward {
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  color: #0f172a;
+}
+
+.forward-badge button.exit-forward:hover {
+  color: #ff004f;
+}
+
 
 .btn-exit {
   background: transparent;
@@ -856,16 +870,6 @@ export default {
   font-size: 0.875rem;
   text-align: center;
 }
-
-.forward-suggestions {
-  margin-top: 0.75rem;
-  max-height: 200px;
-  overflow-y: auto;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(138, 43, 226, 0.3);
-  border-radius: 8px;
-}
-
 .forward-item {
   display: flex;
   align-items: center;
@@ -991,10 +995,12 @@ export default {
 }
 
 .chat-shell {
+  position: relative; 
   width: 100%;
   height: 100%;
   overflow: hidden;
 }
+
 
 .no-selection {
   flex: 1;
