@@ -52,6 +52,7 @@ The easiest way to run the application is using Docker Compose, which handles bo
     *   **API Backend**: Running at [http://localhost:3000](http://localhost:3000) (requests proxied via Nginx).
 
 4.  **Stop the application**:
+
     Run:
     ```bash
     docker compose down
@@ -70,4 +71,3 @@ The REST API specification is available in the `doc` directory:
 *   `service/database`: Database interactions and SQL queries.
 *   `webui`: Vue.js frontend source code.
 *   `doc`: Documentation and API specifications.
-
