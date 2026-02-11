@@ -114,13 +114,13 @@
 </template>
 
 <script>
-import ErrorMsg from '@/components/ErrorMsg.vue'
+
 import ConvView from './ConvView.vue'
 import SearchView from './SearchView.vue'
 
 export default {
   name: 'HomeView',
-  components: { ErrorMsg, ConvView, SearchView },
+  components: { ConvView, SearchView },
   
   data() {
     return {

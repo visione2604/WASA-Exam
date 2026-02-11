@@ -29,8 +29,8 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.POST("/conversations/:conversationId/messages/:messageId/status", rt.wrap(rt.setMessageStatus))
 
 	// --- REACTIONS ---
-	rt.router.POST("/conversations/:conversationId/messages/:messageId/reaction", rt.wrap(rt.addReaction))
-	rt.router.DELETE("/conversations/:conversationId/messages/:messageId/reaction", rt.wrap(rt.removeReaction))
+	rt.router.PUT("/conversations/:conversationId/messages/:messageId/reaction", rt.wrap(rt.commentMessage))
+	rt.router.DELETE("/conversations/:conversationId/messages/:messageId/reaction", rt.wrap(rt.uncommentMessage))
 
 	// --- DIRECT CHAT ---
 	rt.router.POST("/direct-conversations", rt.wrap(rt.createDirectConversation))

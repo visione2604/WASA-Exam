@@ -488,7 +488,7 @@ export default {
       self.successMessage = null
       self.closeRemoveModal()
       var token = localStorage.getItem('token')
-      self.$axios.delete('/groups/' + self.groupId, { data: { userId: userId }, headers: token ? { Authorization: 'Bearer ' + token } : {} })
+      self.$axios.delete('/groups/' + self.groupId + '?userId=' + userId, token ? { headers: { Authorization: 'Bearer ' + token } } : {})
         .then(function() {
           self.members = self.members.filter(function(m) { return String(m.id || m.userId) !== String(userId) })
           self.successMessage = 'Member removed from the group'

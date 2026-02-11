@@ -117,6 +117,9 @@ func (db *appdbimpl) GetConversationByID(userID, conversationID string) (*schema
 		}
 		conv.Participants = append(conv.Participants, u)
 	}
+	if err := memberRows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating members: %w", err)
+	}
 
 	// Get all messages
 	messageRows, err := db.c.Query(`
@@ -149,6 +152,9 @@ func (db *appdbimpl) GetConversationByID(userID, conversationID string) (*schema
 		msg.Sender = sender
 
 		conv.Messages = append(conv.Messages, msg)
+	}
+	if err := messageRows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating messages: %w", err)
 	}
 
 	return &conv, nil
@@ -194,6 +200,9 @@ func (db *appdbimpl) SearchConversationByName(name string) ([]*schema.Conversati
 			return nil, err
 		}
 		conversations = append(conversations, &conv)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating conversations: %w", err)
 	}
 
 	return conversations, nil

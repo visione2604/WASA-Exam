@@ -147,21 +147,15 @@ func (rt *_router) leaveGroup(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 
-	// Parse request
-	var req requests.LeaveGroupRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	// Validate request
-	if !req.IsValid() {
-		http.Error(w, "Invalid request data", http.StatusBadRequest)
+	// Get target user ID from query
+	targetUserID := r.URL.Query().Get("userId")
+	if targetUserID == "" {
+		http.Error(w, "Missing userId", http.StatusBadRequest)
 		return
 	}
 
 	// Remove user from group
-	if err := rt.db.LeaveGroup(groupID, req.UserID); err != nil {
+	if err := rt.db.LeaveGroup(groupID, targetUserID); err != nil {
 		if errors.Is(err, schema.ErrUserNotInGroup) {
 			http.Error(w, "User not in group", http.StatusBadRequest)
 			return

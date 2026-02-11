@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -162,7 +163,7 @@ func (db *appdbimpl) GetMessageByID(messageID string) (*schema.Message, error) {
 		&m.MessageStatus,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("message not found")
 		}
 		return nil, err
@@ -194,7 +195,7 @@ func (db *appdbimpl) DeleteMessage(conversationID, messageID, userID string) err
 		WHERE id = ? AND conversationId = ?
 	`, messageID, conversationID).Scan(&senderID)
 
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return fmt.Errorf("message not found")
 	}
 	if err != nil {

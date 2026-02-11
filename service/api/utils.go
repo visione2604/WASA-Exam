@@ -4,9 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
-	"time"
 
-	"github.com/gofrs/uuid"
 	"github.com/visione2604/WASA-Exam/service/components/schema"
 )
 
@@ -36,18 +34,4 @@ func (rt *_router) getAuthenticatedUserID(r *http.Request) (string, error) {
 	}
 
 	return userID, nil
-}
-
-// generateNewID creates a new UUID
-func generateNewID() (string, error) {
-	newUUID, err := uuid.NewV4()
-	if err != nil {
-		return "", err
-	}
-	return newUUID.String(), nil
-}
-
-// generateCurrentTimestamp returns the current time in RFC3339 format
-func generateCurrentTimestamp() string {
-	return time.Now().UTC().Format(time.RFC3339)
 }

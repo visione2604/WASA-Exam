@@ -30,11 +30,9 @@
 </template>
 
 <script>
-import ErrorMsg from '@/components/ErrorMsg.vue';
-
 export default {
   name: 'UsersView',
-  components: { ErrorMsg },
+
   data() {
     return {
       loading: false,

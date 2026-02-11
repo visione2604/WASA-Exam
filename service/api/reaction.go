@@ -10,7 +10,7 @@ import (
 )
 
 // addReaction adds a reaction to a message
-func (rt *_router) addReaction(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// Get IDs from URL
 	conversationID := ps.ByName("conversationId")
 	messageID := ps.ByName("messageId")
@@ -52,7 +52,7 @@ func (rt *_router) addReaction(w http.ResponseWriter, r *http.Request, ps httpro
 }
 
 // removeReaction removes a reaction from a message
-func (rt *_router) removeReaction(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+func (rt *_router) uncommentMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// Get IDs from URL
 	conversationID := ps.ByName("conversationId")
 	messageID := ps.ByName("messageId")
@@ -69,13 +69,10 @@ func (rt *_router) removeReaction(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	// Parse request body to get reaction type
-	var req struct {
-		Type string `json:"type"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		ctx.Logger.WithError(err).Error("Failed to decode reaction removal request")
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	// Get reaction type from query
+	reactionType := r.URL.Query().Get("type")
+	if reactionType == "" {
+		http.Error(w, "Missing reaction type", http.StatusBadRequest)
 		return
 	}
 
@@ -87,13 +84,13 @@ func (rt *_router) removeReaction(w http.ResponseWriter, r *http.Request, ps htt
 		"sad_face":   true,
 		"angry_face": true,
 	}
-	if !validTypes[req.Type] {
+	if !validTypes[reactionType] {
 		http.Error(w, "Invalid reaction type", http.StatusBadRequest)
 		return
 	}
 
 	// Remove reaction
-	if err := rt.db.DeleteReactionFromMessage(messageID, userID, req.Type); err != nil {
+	if err := rt.db.DeleteReactionFromMessage(messageID, userID, reactionType); err != nil {
 		ctx.Logger.WithError(err).Error("Failed to remove reaction")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

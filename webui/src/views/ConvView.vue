@@ -60,7 +60,8 @@
         <button v-if="toast.targetId" class="link-neon" @click="openToastTarget">Open chat</button>
       </div>
 
-      <template v-if="!loading" v-for="(item, idx) in groupedMessages" :key="getItemKey(item, idx)">
+      <template v-if="!loading">
+        <template v-for="(item, idx) in groupedMessages" :key="getItemKey(item, idx)">
         <!-- Date Separator -->
         <div v-if="item.type === 'date'" class="date-separator-neon">
           <div class="date-badge-neon">{{ formatDate(item.timestamp) }}</div>
@@ -244,6 +245,7 @@
             </div>
           </div>
         </div>
+      </template>
       </template>
     </div>
 
@@ -970,9 +972,8 @@ export default {
       console.error('Could not send leave message:', msgErr);
     }
  
-    await this.$axios.delete(`/groups/${this.effectiveConversationId}`, {
-      headers,
-      data: { userId: this.userId }  
+    await this.$axios.delete(`/groups/${this.effectiveConversationId}?userId=${this.userId}`, {
+      headers
     });
     
     this.conversation.membersIds = (this.conversation?.membersIds || []).filter(id => String(id) !== String(this.userId));
@@ -1389,9 +1390,9 @@ export default {
       return;
     }
     if (current) {
-      await this.$axios.delete(url, { data: { type: current }, ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}) });
+      await this.$axios.delete(url + `?type=${current}`, token ? { headers: { Authorization: `Bearer ${token}` } } : {});
     }
-    await this.$axios.post(url, { type }, token ? { headers: { Authorization: `Bearer ${token}` } } : {});
+    await this.$axios.put(url, { type }, token ? { headers: { Authorization: `Bearer ${token}` } } : {});
     this.tempMyReaction[messageId] = type;
     this.showToast('Reacted');
     this.closePicker();
@@ -1409,8 +1410,8 @@ async unreact(messageId, type) {
   this.$set ? this.$set(this.reactBusy, messageId, true) : (this.reactBusy[messageId] = true);
   try {
     const token = localStorage.getItem('token');
-    const url = `/conversations/${this.effectiveConversationId}/messages/${messageId}/reaction`;
-    await this.$axios.delete(url, { data: { type }, ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}) });
+    const url = `/conversations/${this.effectiveConversationId}/messages/${messageId}/reaction?type=${type}`;
+    await this.$axios.delete(url, token ? { headers: { Authorization: `Bearer ${token}` } } : {});
     delete this.tempMyReaction[messageId];
     this.showToast('Removed reaction');
     this.closePicker();

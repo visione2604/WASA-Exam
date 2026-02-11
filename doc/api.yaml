@@ -8,11 +8,19 @@ security: []
 
 tags:
   - name: Auth
+    description: Authentication operations
   - name: Profile
+    description: User profile and search operations
   - name: Conversation
+    description: Conversation management operations
   - name: Message
+    description: Messaging operations
   - name: Reaction
+    description: Reaction operations
   - name: Group
+    description: Group management operations
+  - name: System
+    description: System status operations
 
 paths:
   /login:
@@ -20,9 +28,11 @@ paths:
       tags:
         - Auth
       summary: Log in or create account
+      description: Log in with a nickname. If the user does not exist, a new user is created.
       operationId: doLogin
       security: []
       requestBody:
+        description: User nickname
         required: true
         content:
           application/json:
@@ -33,8 +43,10 @@ paths:
               properties:
                 name:
                   type: string
+                  description: The user's nickname
                   minLength: 3
                   maxLength: 20
+                  pattern: "^[a-zA-Z0-9_]+$"
                   example: "Maria"
       responses:
         "200":
@@ -43,603 +55,856 @@ paths:
             application/json:
               schema:
                 type: object
+                description: Login response
                 properties:
                   identifier:
                     type: string
+                    description: Authentication token
                     example: "user123token"
+                    minLength: 1
+                    maxLength: 100
+                    pattern: "^[a-zA-Z0-9_\\-]+$"
         "201":
           description: Created
           content:
             application/json:
               schema:
                 type: object
+                description: Creation response
                 properties:
                   identifier:
                     type: string
+                    description: Authentication token
+                    minLength: 1
+                    maxLength: 100
+                    pattern: "^[a-zA-Z0-9_\\-]+$"
 
   /users:
     get:
       tags:
         - Profile
       summary: Get all users
+      description: Retrieve a list of all registered users.
       operationId: getAllUsers
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: List of users
           content:
             application/json:
               schema:
                 type: array
+                description: Array of users
+                minItems: 0
+                maxItems: 1000
                 items:
-                    $ref: '#/components/schemas/User'
+                  $ref: "#/components/schemas/User"
 
   /searchby:
     get:
       tags:
         - Profile
       summary: Search users
+      description: Search for users by username.
       operationId: searchBy
       parameters:
         - name: user
           in: query
           description: Username to search for
+          required: true
           schema:
             type: string
+            description: Username query string
+            minLength: 1
+            maxLength: 50
+            pattern: "^[a-zA-Z0-9_]+$"
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: List of matching users
           content:
             application/json:
               schema:
                 type: array
+                description: Array of matching users
+                minItems: 0
+                maxItems: 100
                 items:
-                    $ref: '#/components/schemas/User'
+                  $ref: "#/components/schemas/User"
 
   /user/username:
     put:
       tags:
         - Profile
       summary: Change username
+      description: Update the authenticated user's username.
       operationId: setMyUserName
       security:
         - BearerAuth: []
       requestBody:
+        description: New username
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Username'
+              $ref: "#/components/schemas/Username"
       responses:
-        '200':
+        "200":
           description: Updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
-        '400':
+                $ref: "#/components/schemas/User"
+        "400":
           description: Error
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Error message
+                properties:
+                  error:
+                    type: string
+                    description: Error detail
 
   /user/photo:
     put:
       tags:
         - Profile
       summary: Set profile photo
+      description: Update the authenticated user's profile photo.
       operationId: setMyPhoto
       security:
         - BearerAuth: []
       requestBody:
+        description: Photo data
         required: true
         content:
           application/json:
             schema:
               type: object
+              description: Photo payload
               required:
                 - photo
               properties:
                 photo:
                   type: string
+                  description: Base64 encoded photo (or byte array)
                   format: byte
+                  minLength: 1
+                  maxLength: 5242880 # 5MB limit example
       responses:
-        '200':
+        "200":
           description: Updated
-  
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Success response
+                properties:
+                  message:
+                    type: string
+                    description: Status message
+
   /conversations:
     get:
       tags:
         - Conversation
       summary: Get conversations
+      description: Retrieve all conversations for the authenticated user.
       operationId: getMyConversations
       security:
         - BearerAuth: []
       responses:
-        '200':
+        "200":
           description: List conversations
           content:
             application/json:
               schema:
                 type: array
+                description: Array of conversations
+                minItems: 0
+                maxItems: 1000
                 items:
-                  $ref: '#/components/schemas/Conversation'
+                  $ref: "#/components/schemas/Conversation"
 
   /conversations/{conversationId}:
+    parameters:
+      - name: conversationId
+        in: path
+        required: true
+        description: The ID of the conversation
+        schema:
+          type: string
+          description: UUID of conversation
+          pattern: "^[0-9a-fA-F\\-]+$"
+          minLength: 36
+          maxLength: 36
     get:
       tags:
         - Conversation
       summary: Get single conversation
+      description: Retrieve details of a specific conversation.
       operationId: getConversation
       security:
         - BearerAuth: []
-      parameters:
-        - name: conversationId
-          in: path
-          required: true
-          schema:
-            type: string
       responses:
-        '200':
+        "200":
           description: Details
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Conversation'
+                $ref: "#/components/schemas/Conversation"
     delete:
       tags:
         - Conversation
       summary: Delete or leave a conversation
+      description: Delete a conversation or leave if it's a group.
       operationId: deleteConversation
       security:
         - BearerAuth: []
-      parameters:
-        - name: conversationId
-          in: path
-          required: true
-          schema:
-            type: string
       responses:
-        '204':
+        "204":
           description: Deleted/Left successfully
 
   /conversations/{conversationId}/members:
+    parameters:
+      - name: conversationId
+        in: path
+        required: true
+        description: The ID of the conversation
+        schema:
+          type: string
+          description: UUID of conversation
+          pattern: "^[0-9a-fA-F\\-]+$"
+          minLength: 36
+          maxLength: 36
     get:
-        tags:
-            - Conversation
-        summary: Get conversation members
-        operationId: getConversationMembers
-        security:
-            - BearerAuth: []
-        parameters:
-            - name: conversationId
-              in: path
-              required: true
+      tags:
+        - Conversation
+      summary: Get conversation members
+      description: Retrieve the list of members in a conversation.
+      operationId: getConversationMembers
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: List of members
+          content:
+            application/json:
               schema:
-                type: string
-        responses:
-            '200':
-                description: List of members
-                content:
-                    application/json:
-                        schema:
-                            type: array
-                            items:
-                                $ref: '#/components/schemas/User'
+                type: array
+                description: Array of users
+                minItems: 0
+                maxItems: 1000
+                items:
+                  $ref: "#/components/schemas/User"
 
   /direct-conversations:
     post:
-        tags:
-            - Conversation
-        summary: Create or get direct conversation
-        operationId: createDirectConversation
-        security:
-            - BearerAuth: []
-        requestBody:
-            required: true
-            content:
-                application/json:
-                    schema:
-                        type: object
-                        required: [peerUserId]
-                        properties:
-                            peerUserId:
-                                type: string
-        responses:
-            '201':
-                description: Conversation created/retrieved
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/Conversation'
-
-  /conversations/{conversationId}/messages:
-    post:
       tags:
-        - Message
-      summary: Send message
-      operationId: sendMessage
+        - Conversation
+      summary: Create or get direct conversation
+      description: Create a new direct conversation or get an existing one with another user.
+      operationId: createDirectConversation
       security:
         - BearerAuth: []
-      parameters:
-        - name: conversationId
-          in: path
-          required: true
-          schema:
-            type: string
       requestBody:
+        description: Peer user ID
         required: true
         content:
           application/json:
             schema:
               type: object
+              description: Request payload
+              required: [peerUserId]
+              properties:
+                peerUserId:
+                  type: string
+                  description: The ID of the other user
+                  pattern: "^[0-9a-fA-F\\-]+$"
+                  minLength: 36
+                  maxLength: 36
+      responses:
+        "201":
+          description: Conversation created/retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+
+  /conversations/{conversationId}/messages:
+    parameters:
+      - name: conversationId
+        in: path
+        required: true
+        description: The ID of the conversation
+        schema:
+          type: string
+          description: UUID of conversation
+          pattern: "^[0-9a-fA-F\\-]+$"
+          minLength: 36
+          maxLength: 36
+    post:
+      tags:
+        - Message
+      summary: Send message
+      description: Send a new message to the conversation.
+      operationId: sendMessage
+      security:
+        - BearerAuth: []
+      requestBody:
+        description: Message content
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Message payload
               required:
                 - content
               properties:
                 content:
                   type: object
+                  description: Content object
                   required:
                     - type
                     - value
                   properties:
                     type:
                       type: string
+                      description: Type of content (text or photo)
                       enum: [text, photo]
                     value:
                       type: string
+                      description: The text or base64 photo
+                      minLength: 1
+                      maxLength: 10000
       responses:
-        '201':
+        "201":
           description: Sent
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Message'
+                $ref: "#/components/schemas/Message"
 
   /conversations/{conversationId}/messages/{messageId}:
+    parameters:
+      - name: conversationId
+        in: path
+        required: true
+        description: The ID of the conversation
+        schema:
+          type: string
+          description: UUID of conversation
+          pattern: "^[0-9a-fA-F\\-]+$"
+          minLength: 36
+          maxLength: 36
+      - name: messageId
+        in: path
+        required: true
+        description: The ID of the message
+        schema:
+          type: string
+          description: UUID of message
+          pattern: "^[0-9a-fA-F\\-]+$"
+          minLength: 36
+          maxLength: 36
     delete:
       tags:
         - Message
       summary: Delete message
+      description: Delete a specific message.
       operationId: deleteMessage
       security:
         - BearerAuth: []
-      parameters:
-        - name: conversationId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: messageId
-          in: path
-          required: true
-          schema:
-            type: string
       responses:
-        '200':
+        "200":
           description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Success response
+                properties:
+                  message:
+                    type: string
+                    description: Status
+                    example: "Deleted"
 
   /conversations/{conversationId}/messages/{messageId}/forward:
+    parameters:
+      - name: conversationId
+        in: path
+        required: true
+        description: The ID of the conversation
+        schema:
+          type: string
+          description: UUID of conversation
+          pattern: "^[0-9a-fA-F\\-]+$"
+          minLength: 36
+          maxLength: 36
+      - name: messageId
+        in: path
+        required: true
+        description: The ID of the message
+        schema:
+          type: string
+          description: UUID of message
+          pattern: "^[0-9a-fA-F\\-]+$"
+          minLength: 36
+          maxLength: 36
     post:
       tags:
         - Message
       summary: Forward message
+      description: Forward a message to another conversation.
       operationId: forwardMessage
       security:
         - BearerAuth: []
-      parameters:
-        - name: conversationId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: messageId
-          in: path
-          required: true
-          schema:
-            type: string
       requestBody:
+        description: Target conversation
         required: true
         content:
           application/json:
             schema:
               type: object
+              description: Forward payload
               required:
                 - targetConversationId
               properties:
                 targetConversationId:
                   type: string
+                  description: ID of target conversation
+                  pattern: "^[0-9a-fA-F\\-]+$"
+                  minLength: 36
+                  maxLength: 36
       responses:
-        '201':
+        "201":
           description: Forwarded
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Message'
-  
+                $ref: "#/components/schemas/Message"
+
   /conversations/{conversationId}/messages/{messageId}/status:
+    parameters:
+      - name: conversationId
+        in: path
+        required: true
+        description: The ID of the conversation
+        schema:
+          type: string
+          description: UUID of conversation
+          pattern: "^[0-9a-fA-F\\-]+$"
+          minLength: 36
+          maxLength: 36
+      - name: messageId
+        in: path
+        required: true
+        description: The ID of the message
+        schema:
+          type: string
+          description: UUID of message
+          pattern: "^[0-9a-fA-F\\-]+$"
+          minLength: 36
+          maxLength: 36
     post:
       tags:
         - Message
       summary: Set message status
+      description: Update the read/delivered status of a message.
       operationId: setMessageStatus
       security:
         - BearerAuth: []
-      parameters:
-        - name: conversationId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: messageId
-          in: path
-          required: true
-          schema:
-            type: string
       requestBody:
+        description: Status update
         required: true
         content:
           application/json:
             schema:
               type: object
+              description: Status payload
               required: [status]
               properties:
                 status:
                   type: string
+                  description: New status
                   enum: [delivered, read]
       responses:
-        '200':
+        "200":
           description: Status updated
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Success response
+                properties:
+                  message:
+                    type: string
+                    description: Status
+                    example: "Status updated"
 
   /conversations/{conversationId}/messages/{messageId}/reaction:
-    post:
+    parameters:
+      - name: conversationId
+        in: path
+        required: true
+        description: The ID of the conversation
+        schema:
+          type: string
+          description: UUID of conversation
+          pattern: "^[0-9a-fA-F\\-]+$"
+          minLength: 36
+          maxLength: 36
+      - name: messageId
+        in: path
+        required: true
+        description: The ID of the message
+        schema:
+          type: string
+          description: UUID of message
+          pattern: "^[0-9a-fA-F\\-]+$"
+          minLength: 36
+          maxLength: 36
+    put:
       tags: [Reaction]
       summary: Add a reaction to a message
-      operationId: addReaction
+      description: Add a reaction (emoji) to a message.
+      operationId: commentMessage
       security:
         - BearerAuth: []
-      parameters:
-        - name: conversationId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: messageId
-          in: path
-          required: true
-          schema:
-            type: string
       requestBody:
+        description: Reaction details
         required: true
         content:
           application/json:
             schema:
               type: object
+              description: Reaction payload
               required: [type]
               properties:
                 type:
                   type: string
-                  enum: [like, heart, laugh,sad_face,angry_face]
                   description: Type of reaction to add
+                  enum: [like, heart, laugh, sad_face, angry_face]
       responses:
-        '200':
+        "200":
           description: Reaction added successfully
-        '400':
-          description: Invalid request 
           content:
             application/json:
               schema:
                 type: object
+                description: Success response
                 properties:
-                  error:
+                  message:
                     type: string
-                    example: "Invalid reaction"
-        '404':
-          description: Message or conversation not found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Message not found"
-
-    delete:
-      tags: [Reaction]
-      summary: Remove a reaction from a message
-      operationId: removeReaction
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: conversationId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: messageId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-            application/json:
-                schema:
-                    type: object
-                    required: [type]
-                    properties:
-                        type:
-                            type: string
-                            enum: [like, heart, laugh,sad_face,angry_face]
-      responses:
-        '200':
-          description: Reaction removed successfully
-        '400':
+                    description: Success message
+                    example: "Reaction added"
+        "400":
           description: Invalid request
           content:
             application/json:
               schema:
                 type: object
+                description: Error response
                 properties:
                   error:
                     type: string
-        '404':
+                    description: Error message
+                    example: "Invalid reaction"
+        "404":
+          description: Message or conversation not found
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Error response
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                    example: "Message not found"
+
+    delete:
+      tags: [Reaction]
+      summary: Remove a reaction from a message
+      description: Remove a reaction from a message.
+      operationId: uncommentMessage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          required: true
+          description: The type of reaction to remove
+          schema:
+            type: string
+            description: Reaction type
+            enum: [like, heart, laugh, sad_face, angry_face]
+      responses:
+        "200":
+          description: Reaction removed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Success response
+                properties:
+                  message:
+                    type: string
+                    description: Success message
+                    example: "Reaction removed"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Error response
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+        "404":
           description: Message or conversation not found
 
   /groups:
     post:
-        tags: [Group]
-        summary: Create a group
-        operationId: createGroup
-        security:
-            - BearerAuth: []
-        requestBody:
-            required: true
-            content:
-                application/json:
-                    schema:
-                        type: object
-                        required: [groupName, members]
-                        properties:
-                            groupName:
-                                type: string
-                            members:
-                                type: array
-                                items:
-                                    type: string
-                            groupPhoto:
-                                type: string
-                                format: byte
-        responses:
-            '201':
-                description: Group created
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/Conversation'
-
-  /groups/{groupId}:
-    post:
-        tags: [Group]
-        summary: Add user to group
-        operationId: addToGroup
-        security:
-            - BearerAuth: []
-        parameters:
-            - name: groupId
-              in: path
-              required: true
-              schema:
-                type: string
-        requestBody:
-            required: true
-            content:
-                application/json:
-                    schema:
-                        type: object
-                        required: [userId]
-                        properties:
-                            userId:
-                                type: string
-        responses:
-            '204':
-                description: User added
-
-    delete:
-        tags: [Group]
-        summary: Remove user from group (or leave if self)
-        operationId: leaveGroup
-        security:
-            - BearerAuth: []
-        parameters:
-            - name: groupId
-              in: path
-              required: true
-              schema:
-                type: string
-        requestBody:
-            required: true
-            content:
-                application/json:
-                    schema:
-                        type: object
-                        required: [userId]
-                        properties:
-                            userId:
-                                type: string
-        responses:
-            '204':
-                description: User removed
-
-  /groups/{groupId}/name:
-    put:
-      tags:
-        - Group
-      summary: Change group name
-      operationId: setGroupName
+      tags: [Group]
+      summary: Create a group
+      description: Create a new group conversation.
+      operationId: createGroup
       security:
         - BearerAuth: []
-      parameters:
-        - name: groupId
-          in: path
-          required: true
-          schema:
-            type: string
       requestBody:
+        description: Group details
         required: true
         content:
           application/json:
             schema:
               type: object
+              description: Group creation payload
+              required: [groupName, members]
+              properties:
+                groupName:
+                  type: string
+                  description: Name of the group
+                  minLength: 1
+                  maxLength: 100
+                  pattern: "^[a-zA-Z0-9 _\\-]+$"
+                members:
+                  type: array
+                  description: List of initial members (user IDs)
+                  minItems: 1
+                  maxItems: 100
+                  items:
+                    type: string
+                    description: User UUID
+                    pattern: "^[0-9a-fA-F\\-]+$"
+                groupPhoto:
+                  type: string
+                  description: Optional group photo
+                  format: byte
+                  minLength: 0
+                  maxLength: 5242880
+      responses:
+        "201":
+          description: Group created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+
+  /groups/{groupId}:
+    parameters:
+      - name: groupId
+        in: path
+        required: true
+        description: The ID of the group
+        schema:
+          type: string
+          description: UUID of group
+          pattern: "^[0-9a-fA-F\\-]+$"
+          minLength: 36
+          maxLength: 36
+    post:
+      tags: [Group]
+      summary: Add user to group
+      description: Add a user to an existing group.
+      operationId: addToGroup
+      security:
+        - BearerAuth: []
+      requestBody:
+        description: User to add
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Add user payload
+              required: [userId]
+              properties:
+                userId:
+                  type: string
+                  description: User UUID
+                  pattern: "^[0-9a-fA-F\\-]+$"
+                  minLength: 36
+                  maxLength: 36
+      responses:
+        "204":
+          description: User added
+
+    delete:
+      tags: [Group]
+      summary: Remove user from group (or leave if self)
+      description: Remove a user from the group.
+      operationId: leaveGroup
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          description: ID of user to remove
+          schema:
+            type: string
+            description: User UUID
+            pattern: "^[0-9a-fA-F\\-]+$"
+            minLength: 36
+            maxLength: 36
+      responses:
+        "204":
+          description: User removed
+
+  /groups/{groupId}/name:
+    parameters:
+      - name: groupId
+        in: path
+        required: true
+        description: The ID of the group
+        schema:
+          type: string
+          description: UUID of group
+          pattern: "^[0-9a-fA-F\\-]+$"
+          minLength: 36
+          maxLength: 36
+    put:
+      tags:
+        - Group
+      summary: Change group name
+      description: Update the name of a group.
+      operationId: setGroupName
+      security:
+        - BearerAuth: []
+      requestBody:
+        description: New group name
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Name payload
               required:
                 - name
               properties:
                 name:
                   type: string
+                  description: New name
+                  minLength: 1
+                  maxLength: 100
+                  pattern: "^[a-zA-Z0-9 _\\-]+$"
       responses:
-        '200':
+        "200":
           description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Success response
+                properties:
+                  id:
+                    type: string
+                    description: Group ID
+                  name:
+                    type: string
+                    description: New Name
+                  isGroup:
+                    type: boolean
+                    description: Is group flag
 
   /groups/{groupId}/photo:
+    parameters:
+      - name: groupId
+        in: path
+        required: true
+        description: The ID of the group
+        schema:
+          type: string
+          description: UUID of group
+          pattern: "^[0-9a-fA-F\\-]+$"
+          minLength: 36
+          maxLength: 36
     put:
       tags:
         - Group
       summary: Set group photo
+      description: Update the photo of a group.
       operationId: setGroupPhoto
       security:
         - BearerAuth: []
-      parameters:
-        - name: groupId
-          in: path
-          required: true
-          schema:
-            type: string
       requestBody:
+        description: New group photo
         required: true
         content:
           application/json:
             schema:
               type: object
+              description: Photo payload
               required:
                 - photo
               properties:
                 photo:
                   type: string
+                  description: Photo data
                   format: byte
+                  minLength: 1
+                  maxLength: 5242880
       responses:
-        '200':
+        "200":
           description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Success response
+                properties:
+                  message:
+                    type: string
+                    description: Status
+                  groupPhoto:
+                    type: string
+                    description: New photo
+                    format: byte
 
   /liveness:
     get:
-        tags: [System]
-        summary: Health check
-        operationId: liveness
-        responses:
-            '200':
-                description: OK
-  
+      tags: [System]
+      summary: Health check
+      description: Check if the system is running.
+      operationId: liveness
+      responses:
+        "200":
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: Status message
+                example: "UP"
+
 components:
   securitySchemes:
     BearerAuth:
@@ -650,44 +915,64 @@ components:
   schemas:
     Username:
       type: object
+      description: Username schema
       required:
         - name
       properties:
         name:
           type: string
+          description: The username
+          minLength: 3
+          maxLength: 20
+          pattern: "^[a-zA-Z0-9_]+$"
           example: "Alex"
 
     User:
       type: object
+      description: User profile info
       required:
         - id
         - username
       properties:
         id:
           type: string
+          description: User UUID
+          pattern: "^[0-9a-fA-F\\-]+$"
+          minLength: 36
+          maxLength: 36
           example: "u1"
         username:
-          $ref: '#/components/schemas/Username'
+          $ref: "#/components/schemas/Username"
         profilePhoto:
           type: string
+          description: Profile photo
           format: byte
-          nullable: true
+          # nullable removed, use empty string or omission if needed
+          minLength: 0
+          maxLength: 5242880
 
     Reaction:
       type: object
+      description: Message reaction
       required:
         - type
-        - authorId 
+        - authorId
       properties:
         type:
           type: string
-          enum: [like, heart, laugh,sad_face,angry_face]
+          description: Type of reaction
+          enum: [like, heart, laugh, sad_face, angry_face]
         authorId:
           type: string
+          description: User ID who reacted
+          pattern: "^[0-9a-fA-F\\-]+$"
+          minLength: 36
+          maxLength: 36
           example: "u1"
 
     Message:
       type: object
+      description: A message in a conversation
       required:
         - id
         - sender
@@ -697,37 +982,58 @@ components:
       properties:
         id:
           type: string
+          description: Message UUID
+          pattern: "^[0-9a-fA-F\\-]+$"
+          minLength: 36
+          maxLength: 36
           example: "msg1"
         sender:
-          $ref: '#/components/schemas/User'
+          $ref: "#/components/schemas/User"
         content:
           type: object
+          description: Message content
           required:
             - type
             - value
           properties:
             type:
               type: string
+              description: Content type
               enum: [text, photo]
             value:
               type: string
+              description: content value
+              minLength: 1
+              maxLength: 10000
         timestamp:
           type: string
+          description: Message creation time
           format: date-time
+          minLength: 20
+          maxLength: 30
         message_status:
           type: string
+          description: Status of the message
           enum: [sent, delivered, read]
         forwarded_from:
           type: string
-          nullable: true
+          description: Original sender ID if forwarded
+          pattern: "^[0-9a-fA-F\\-]+$"
+          minLength: 36
+          maxLength: 36
+          # nullable: true
         reactions:
           type: array
+          description: List of reactions
+          minItems: 0
+          maxItems: 100
           items:
-            $ref: '#/components/schemas/Reaction'
-          nullable: true
+            $ref: "#/components/schemas/Reaction"
+          # nullable: true
 
     Conversation:
       type: object
+      description: Conversation object
       required:
         - id
         - name
@@ -735,27 +1041,46 @@ components:
       properties:
         id:
           type: string
+          description: Conversation UUID
+          pattern: "^[0-9a-fA-F\\-]+$"
+          minLength: 36
+          maxLength: 36
           example: "conv1"
         name:
           type: string
+          description: Conversation name
+          minLength: 0
+          maxLength: 100
+          # pattern: "^[a-zA-Z0-9 _\\-]*$"
           example: "Chat"
         groupPhoto:
           type: string
+          description: Group photo
           format: byte
-          nullable: true
+          minLength: 0
+          maxLength: 5242880
+          # nullable: true
         isGroup:
           type: boolean
+          description: Is this a group conversation?
           example: true
         lastMessage:
+          description: The last message in the conversation
           allOf:
-            - $ref: '#/components/schemas/Message'
-          nullable: true
+            - $ref: "#/components/schemas/Message"
+          # nullable: true
         participants:
           type: array
+          description: List of participants
+          minItems: 0
+          maxItems: 100
           items:
-            $ref: '#/components/schemas/User'
+            $ref: "#/components/schemas/User"
         messages:
           type: array
+          description: List of messages
+          minItems: 0
+          maxItems: 1000
           items:
-            $ref: '#/components/schemas/Message'
-          nullable: true
+            $ref: "#/components/schemas/Message"
+          # nullable: true
