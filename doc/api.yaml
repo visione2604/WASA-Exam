@@ -940,7 +940,7 @@ components:
           pattern: "^[0-9a-fA-F\\-]+$"
           minLength: 36
           maxLength: 36
-          example: "u1"
+          example: "00000000-0000-0000-0000-000000000001"
         username:
           $ref: "#/components/schemas/Username"
         profilePhoto:
@@ -968,7 +968,7 @@ components:
           pattern: "^[0-9a-fA-F\\-]+$"
           minLength: 36
           maxLength: 36
-          example: "u1"
+          example: "00000000-0000-0000-0000-000000000001"
 
     Message:
       type: object
@@ -986,7 +986,7 @@ components:
           pattern: "^[0-9a-fA-F\\-]+$"
           minLength: 36
           maxLength: 36
-          example: "msg1"
+          example: "00000000-0000-0000-0000-000000000001"
         sender:
           $ref: "#/components/schemas/User"
         content:
@@ -1005,6 +1005,7 @@ components:
               description: content value
               minLength: 1
               maxLength: 10000
+              pattern: "^.*$"
         timestamp:
           type: string
           description: Message creation time
@@ -1045,13 +1046,13 @@ components:
           pattern: "^[0-9a-fA-F\\-]+$"
           minLength: 36
           maxLength: 36
-          example: "conv1"
+          example: "00000000-0000-0000-0000-000000000001"
         name:
           type: string
           description: Conversation name
           minLength: 0
           maxLength: 100
-          # pattern: "^[a-zA-Z0-9 _\\-]*$"
+          pattern: "^[a-zA-Z0-9 _\\-]*$"
           example: "Chat"
         groupPhoto:
           type: string

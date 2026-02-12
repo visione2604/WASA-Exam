@@ -328,14 +328,21 @@ export default {
       self.loading = true
       self.errorMessage = null
       var token = localStorage.getItem('token')
-      self.$axios.get('/conversations/' + self.groupId, token ? { headers: { Authorization: 'Bearer ' + token } } : {})
-        .then(function(response) {
-          var conv = response.data || {}
+      var config = token ? { headers: { Authorization: 'Bearer ' + token } } : {}
+
+      Promise.all([
+        self.$axios.get('/conversations/' + self.groupId, config),
+        self.$axios.get('/conversations/' + self.groupId + '/members', config)
+      ])
+        .then(function(results) {
+          var conv = results[0].data || {}
+          var members = results[1].data || []
+
           self.groupName = conv.name || ''
           self.originalName = conv.name || ''
           self.groupPhoto = conv.groupPhoto || conv.profilePhoto || conv.photo || ''
           self.originalPhoto = self.groupPhoto
-          self.members = conv.participants || []
+          self.members = members
           self.creatorId = conv.createdBy || conv.creatorId || null
           self.loading = false
         })

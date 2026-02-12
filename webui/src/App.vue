@@ -95,9 +95,18 @@
 
 <script setup>
 import { RouterLink, RouterView, useRouter } from 'vue-router'
+import { onMounted } from 'vue'
 import axios from './services/axios.js'
 
 const router = useRouter()
+
+onMounted(async () => {
+  try {
+    await axios.get('/liveness')
+  } catch (e) {
+    console.error('Liveness check failed', e)
+  }
+})
 
 // Event handlers for HomeView communication
 const emitNewChat = () => {
