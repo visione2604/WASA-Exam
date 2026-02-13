@@ -38,6 +38,7 @@ paths:
           application/json:
             schema:
               type: object
+              description: Login payload
               required:
                 - name
               properties:
@@ -903,6 +904,9 @@ paths:
               schema:
                 type: string
                 description: Status message
+                minLength: 2
+                maxLength: 10
+                pattern: "^[A-Z]+$"
                 example: "UP"
 
 components:
